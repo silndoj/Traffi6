@@ -310,7 +310,7 @@ async def ws_traffic(ws: WebSocket):
                 sim.update_from_data(readings)
                 current_anomalies = detect_anomalies(readings, sensor_stats)
 
-            sim.tick(0.1 * speed_multiplier)
+            sim.tick(0.1)
             positions = sim.get_positions()
 
             global _current_ws_step
