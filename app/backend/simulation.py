@@ -161,6 +161,7 @@ class Vehicle:
         self._sim = sim  # reference to TrafficSimulation for traffic light checks
         self.attraction_node = None
         self._waiting_at_red = False
+        self._queue_offset = 0.0  # how far back from intersection when queued
 
         lat, lon = road_network.position_of(start_node)
         self.x = lat
@@ -271,26 +272,29 @@ class Vehicle:
         # If waiting at a red light, check if it turned green
         if self._waiting_at_red:
             if self._is_red_light(self.target_node):
-                return  # still red — stay put
+                # Stay queued — position along road behind intersection
+                lat1, lon1 = self._net.position_of(self.current_node)
+                lat2, lon2 = self._net.position_of(self.target_node)
+                queue_progress = max(0.5, 1.0 - self._queue_offset)
+                self.x = lat1 + (lat2 - lat1) * queue_progress
+                self.y = lon1 + (lon2 - lon1) * queue_progress
+                return
             self._waiting_at_red = False
+            self._queue_offset = 0.0
             self._pick_next_target()
 
         distance_moved = self.speed * dt
         self.progress += distance_moved / self._edge_length
 
-        # Reaching target node — check for red light before proceeding
+        # Approaching a red light — decelerate and stop before intersection
+        if self.progress >= 0.85 and self._is_red_light(self.target_node):
+            self.progress = min(self.progress, 0.92)
+            self._waiting_at_red = True
+            # Assign queue position: small random offset so vehicles don't stack
+            self._queue_offset = random.uniform(0.04, 0.35)
+
+        # Reaching target node — proceed through
         if self.progress >= 1.0:
-            self.progress = 1.0
-            # Snap to target node position
-            lat, lon = self._net.position_of(self.target_node)
-            self.x = lat
-            self.y = lon
-
-            if self._is_red_light(self.target_node):
-                self._waiting_at_red = True
-                return  # stop at the intersection
-
-            # Green or no light — continue
             self.progress -= 1.0
             self._pick_next_target()
             if self._edge_length <= 0:
