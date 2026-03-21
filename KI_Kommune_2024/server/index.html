@@ -1,0 +1,90 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map with Leaflet.js</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>    <style>
+        #map { height: 600px; width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>The traffic in Karlsruhe at the moment</h1>
+    <h3>Watch people, cars and bikes in real time</h3>
+    <button id="mode">Detect only in sensor vicinity</button>
+    <hr>
+
+    <iframe id="map" src="map.html" width="100%" height="500px" frameborder="0"></iframe>
+
+    <script>
+        let toggleMode = false;
+        document.getElementById("mode").addEventListener("click", function() {
+            console.log("Mode button clicked!");
+            toggleMode = true;
+        });
+    </script>
+
+    <script>
+        let iframe = document.getElementById("map");
+        let old_markers = [];
+
+        function addMarker(my_map, coord) {
+            console.log(coord);
+
+            let iconUrl;
+            iconUrl = "default.png";
+            if (coord.TYPE == "car")
+                iconUrl = "car.png";
+            if (coord.TYPE == "foot")
+                iconUrl = "foot.png";
+            if (coord.TYPE == "truck")
+                iconUrl = "truck.png"; 
+            if (coord.TYPE == "bicycle")
+                iconUrl = "bicycle.png";
+            if (coord.TYPE == "motor_bike")
+                iconUrl = "motor_bike.png";
+            const icon = L.icon({
+                iconUrl: iconUrl,
+                iconSize: [25, 25],
+                opacity: 0
+            });
+
+            let marker = L.marker([coord.X, coord.Y], { icon: icon });
+            marker.addTo(my_map);
+            old_markers.push(marker);
+        }
+
+        function clearMarkers(my_map) {
+            old_markers.forEach(marker => my_map.removeLayer(marker));  // Remove each marker from the map
+            old_markers = [];
+        }
+
+        iframe.onload = function() {
+            const mapVariableName = Object.keys(iframe.contentWindow).find(key => key.startsWith("map_"));
+            const my_map = iframe.contentWindow[mapVariableName];
+
+            setInterval(() => {
+            // Fetch map
+            fetch("/data")
+                .then(response => {
+                    return response.json();
+                })
+                .then(data => {
+                    // if (toggleMode) {}
+                    
+                    const coordinates = data.map(({ X, Y, TYPE }) => ({ X, Y, TYPE }));
+
+                    clearMarkers(my_map);
+
+                    coordinates.forEach(coord => {
+                        addMarker(my_map, coord);
+                    });   
+                })
+                .catch(error => console.error("Error loading data:", error));
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
