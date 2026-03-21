@@ -153,12 +153,14 @@ class RoadNetwork:
 class Vehicle:
     """A traffic entity that moves along road graph edges."""
 
-    def __init__(self, vid, vehicle_type, road_network, start_node):
+    def __init__(self, vid, vehicle_type, road_network, start_node, sim=None):
         self.id = vid
         self.vehicle_type = vehicle_type
         self.speed = SPEED_MAP.get(vehicle_type, 10.0)
         self._net = road_network
+        self._sim = sim  # reference to TrafficSimulation for traffic light checks
         self.attraction_node = None
+        self._waiting_at_red = False
 
         lat, lon = road_network.position_of(start_node)
         self.x = lat
@@ -244,8 +246,20 @@ class Vehicle:
         self.progress = 0.0
         self._edge_length = self._net.edge_length_m(self.current_node, self.target_node)
 
+    def _is_red_light(self, node_id):
+        """Check if a node has a red traffic light right now."""
+        if self._sim is None:
+            return False
+        tl = self._sim._traffic_lights.get(node_id)
+        if tl is None:
+            return False  # no traffic light at this node
+        t = (self._sim._sim_time + tl["phase_offset"]) % tl["cycle_sec"]
+        green_duration = tl["cycle_sec"] * 0.45
+        yellow_duration = 3.0
+        return t >= green_duration + yellow_duration  # red phase
+
     def move(self, dt):
-        # Skip micro-edges (<10m) instantly — prevents jittery movement
+        # Skip micro-edges (<10m) instantly
         if 0 < self._edge_length < 10:
             self._pick_next_target()
 
@@ -254,15 +268,33 @@ class Vehicle:
             if self._edge_length <= 0:
                 return
 
+        # If waiting at a red light, check if it turned green
+        if self._waiting_at_red:
+            if self._is_red_light(self.target_node):
+                return  # still red — stay put
+            self._waiting_at_red = False
+            self._pick_next_target()
+
         distance_moved = self.speed * dt
         self.progress += distance_moved / self._edge_length
 
-        while self.progress >= 1.0:
+        # Reaching target node — check for red light before proceeding
+        if self.progress >= 1.0:
+            self.progress = 1.0
+            # Snap to target node position
+            lat, lon = self._net.position_of(self.target_node)
+            self.x = lat
+            self.y = lon
+
+            if self._is_red_light(self.target_node):
+                self._waiting_at_red = True
+                return  # stop at the intersection
+
+            # Green or no light — continue
             self.progress -= 1.0
             self._pick_next_target()
             if self._edge_length <= 0:
                 self.progress = 0.0
-                break
 
         lat1, lon1 = self._net.position_of(self.current_node)
         lat2, lon2 = self._net.position_of(self.target_node)
@@ -342,7 +374,7 @@ class TrafficSimulation:
             count = round(share * POOL_SIZE)
             for _ in range(count):
                 node = self.road_network.random_connected_node()
-                v = Vehicle(vid, vehicle_type, self.road_network, node)
+                v = Vehicle(vid, vehicle_type, self.road_network, node, sim=self)
                 # Scatter initial progress so vehicles don't all start at nodes
                 v.progress = random.random()
                 if v._edge_length > 0:
@@ -357,7 +389,7 @@ class TrafficSimulation:
         # Fix rounding: add or remove to hit exactly POOL_SIZE
         while len(self._vehicles) < POOL_SIZE:
             node = self.road_network.random_connected_node()
-            v = Vehicle(vid, "car", self.road_network, node)
+            v = Vehicle(vid, "car", self.road_network, node, sim=self)
             self._vehicles[vid] = v
             self._attractions[vid] = None
             vid += 1
