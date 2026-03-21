@@ -12,6 +12,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 import database
+from analytics import (
+    compute_peak_hours,
+    compute_sensor_stats,
+    detect_anomalies,
+    compute_congestion_grid,
+    compute_traffic_status,
+)
 
 # ---------------------------------------------------------------------------
 # Sensor mapping — reuse the GIS module from the old codebase
@@ -122,7 +129,15 @@ for _i, _ts in enumerate(timestamps):
         print(f"[server] Starting at index {_i} ({_ts}) with {_total} vehicles")
         break
 
+# Pre-compute analytics on startup
+sensor_stats = compute_sensor_stats()
+peak_hours = compute_peak_hours()
+print(f"[server] Peak hours computed, sensor stats ready")
+
 print(f"[server] {len(sensor_ids)} sensors | {len(timestamps):,} timestamps loaded")
+
+# Track current WebSocket step for REST endpoints
+_current_ws_step = 0
 
 # ---------------------------------------------------------------------------
 # FastAPI app
@@ -174,6 +189,24 @@ def api_sensors():
     ]
 
 
+@app.get("/api/intelligence")
+def api_intelligence():
+    return {"peak_hours": peak_hours, "sensor_count": len(sensor_ids)}
+
+
+@app.get("/api/traffic-status")
+def api_traffic_status():
+    """For mobile card -- returns current traffic conditions."""
+    global _current_ws_step
+    current_ts = timestamps[_current_ws_step] if timestamps else None
+    readings = database.get_readings_at(current_ts) if current_ts else {}
+    anomalies = detect_anomalies(readings, sensor_stats)
+    status = compute_traffic_status(readings, sensor_stats)
+    status["anomalies"] = anomalies
+    status["timestamp"] = current_ts
+    return status
+
+
 # ---------------------------------------------------------------------------
 # WebSocket streaming
 # ---------------------------------------------------------------------------
@@ -191,6 +224,7 @@ async def ws_traffic(ws: WebSocket):
     tick_count = 0
     speed_multiplier = 1.0
     paused = False
+    readings = {}
 
     try:
         while True:
@@ -225,12 +259,22 @@ async def ws_traffic(ws: WebSocket):
             sim.tick(0.1)
             positions = sim.get_positions()
 
+            # Compute heatmap and anomalies for this timestamp
+            heatmap = compute_congestion_grid(readings, sensor_positions)
+            anomalies = detect_anomalies(readings, sensor_stats)
+
+            # Update module-level step for REST endpoint
+            global _current_ws_step
+            _current_ws_step = ts_index
+
             await ws.send_json({
                 "positions": positions,
                 "timestamp": timestamps[ts_index],
                 "step": ts_index,
                 "total_steps": len(timestamps),
                 "tick": tick_count,
+                "heatmap": heatmap,
+                "anomalies": anomalies,
             })
 
             tick_count += 1
