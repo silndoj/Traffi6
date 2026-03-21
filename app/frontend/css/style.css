@@ -540,6 +540,18 @@ body {
   border-radius: 8px;
 }
 
+/* ── Traffic Lights ─────────────────────────── */
+
+.tl-icon {
+  background: transparent !important;
+  border: none !important;
+}
+.tl-dot {
+  transition:
+    background 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
 /* ── Signal Intelligence ───────────────────── */
 
 .toggle-group {

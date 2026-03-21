@@ -283,8 +283,58 @@ class TrafficSimulation:
         for sensor_id, (lat, lon) in sensor_positions.items():
             self._sensor_nodes[sensor_id] = self.road_network.nearest_node(lat, lon)
 
+        # Traffic lights at intersections with 4+ connections
+        self._traffic_lights = {}
+        self._sim_time = 0.0
+        self._init_traffic_lights()
+
         # Create exactly POOL_SIZE vehicles with fixed composition
         self._create_pool()
+
+    def _init_traffic_lights(self):
+        """Place traffic lights at intersections with 4+ road connections."""
+        rn = self.road_network
+        for nid in rn.nodes:
+            degree = len(rn.edges.get(nid, []))
+            if degree >= 4:
+                lat, lon = rn.nodes[nid]
+                # Cycle time based on intersection size: bigger = longer cycle
+                cycle_sec = 30 + degree * 10  # 70s for 4-way, 90s for 6-way
+                # Random phase offset so not all lights sync
+                phase_offset = random.random() * cycle_sec
+                self._traffic_lights[nid] = {
+                    "lat": lat,
+                    "lon": lon,
+                    "cycle_sec": cycle_sec,
+                    "phase_offset": phase_offset,
+                    "degree": degree,
+                }
+        print(f"[sim] Traffic lights: {len(self._traffic_lights)} intersections")
+
+    def get_traffic_light_states(self):
+        """Return current state of all traffic lights."""
+        lights = []
+        for nid, tl in self._traffic_lights.items():
+            # Calculate phase within cycle
+            t = (self._sim_time + tl["phase_offset"]) % tl["cycle_sec"]
+            green_duration = tl["cycle_sec"] * 0.45
+            yellow_duration = 3.0
+            red_duration = tl["cycle_sec"] - green_duration - yellow_duration
+
+            if t < green_duration:
+                state = "green"
+            elif t < green_duration + yellow_duration:
+                state = "yellow"
+            else:
+                state = "red"
+
+            lights.append({
+                "lat": round(tl["lat"], 6),
+                "lon": round(tl["lon"], 6),
+                "state": state,
+                "degree": tl["degree"],
+            })
+        return lights
 
     def _create_pool(self):
         vid = 0
@@ -392,6 +442,7 @@ class TrafficSimulation:
                 self._vehicles[vid].attraction_node = None
 
     def tick(self, dt):
+        self._sim_time += dt
         for v in self._vehicles.values():
             v.move(dt)
 

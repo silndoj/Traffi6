@@ -18,6 +18,8 @@ const state = {
   corridorsVisible: false,
   signalData: null,
   corridorData: null,
+  trafficLightMarkers: new Map(),
+  trafficLightsVisible: true,
 };
 
 const VEHICLE_TYPES = ["car", "truck", "motor_bike", "bicycle", "foot"];
@@ -246,6 +248,56 @@ function generateQR() {
   });
 }
 
+// ── Traffic Lights ──────────────────────────────────────────────────────────
+
+var TL_COLORS = { green: "#22c55e", yellow: "#f59e0b", red: "#ef4444" };
+
+function updateTrafficLights(lights) {
+  if (!state.trafficLightsVisible) return;
+
+  var seen = new Set();
+  for (var i = 0; i < lights.length; i++) {
+    var tl = lights[i];
+    var key = tl.lat + "," + tl.lon;
+    seen.add(key);
+
+    var existing = state.trafficLightMarkers.get(key);
+    if (existing) {
+      // Update color
+      var el = existing.getElement();
+      if (el) {
+        var dot = el.querySelector(".tl-dot");
+        if (dot) dot.style.background = TL_COLORS[tl.state] || TL_COLORS.red;
+      }
+    } else {
+      // Create new traffic light marker
+      var size = tl.degree >= 5 ? 10 : 7;
+      var icon = L.divIcon({
+        className: "tl-icon",
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+        html:
+          '<div class="tl-dot" style="width:' +
+          size +
+          "px;height:" +
+          size +
+          "px;background:" +
+          TL_COLORS[tl.state] +
+          ";border-radius:50%;box-shadow:0 0 4px " +
+          TL_COLORS[tl.state] +
+          ';"></div>',
+      });
+      var marker = L.marker([tl.lat, tl.lon], {
+        icon: icon,
+        interactive: false,
+        pane: "markerPane",
+      });
+      marker.addTo(state.map);
+      state.trafficLightMarkers.set(key, marker);
+    }
+  }
+}
+
 // ── Marker Pool ─────────────────────────────────────────────────────────────
 
 function updateMarkers(vehicles) {
@@ -394,6 +446,11 @@ function connectWebSocket() {
       // Anomaly alerts from WebSocket
       if (data.anomalies) {
         renderAlerts(data.anomalies);
+      }
+
+      // Traffic lights from WebSocket
+      if (data.traffic_lights) {
+        updateTrafficLights(data.traffic_lights);
       }
     } catch (e) {
       console.error("WebSocket message parse error:", e);

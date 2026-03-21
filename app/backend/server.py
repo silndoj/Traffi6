@@ -321,13 +321,20 @@ async def ws_traffic(ws: WebSocket):
             global _current_ws_step
             _current_ws_step = ts_index
 
-            await ws.send_json({
+            # Traffic lights only sent every 5th frame (they change slowly)
+            traffic_lights = sim.get_traffic_light_states() if tick_count % 5 == 0 else None
+
+            msg = {
                 "positions": positions,
                 "timestamp": timestamps[ts_index],
                 "step": ts_index,
                 "total_steps": len(timestamps),
                 "anomalies": current_anomalies,
-            })
+            }
+            if traffic_lights is not None:
+                msg["traffic_lights"] = traffic_lights
+
+            await ws.send_json(msg)
 
             tick_count += 1
             if tick_count >= effective_ticks:
