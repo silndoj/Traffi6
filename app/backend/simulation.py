@@ -207,6 +207,12 @@ class TrafficSimulation:
         # Track which vehicles belong to which sensor+type bucket
         self._bucket: dict[tuple[str, str], list[int]] = defaultdict(list)
 
+        # Target counts for gradual adjustment (updated by update_from_data)
+        self._targets: dict[tuple[str, str], int] = defaultdict(int)
+
+        # Max vehicles to spawn or despawn per tick (smoothing)
+        self._max_change_per_tick = 3
+
     def _spawn(self, sensor_id: str, vehicle_type: str) -> Vehicle:
         """Spawn one vehicle at the sensor's nearest node."""
         vid = self._next_id
@@ -250,26 +256,29 @@ class TrafficSimulation:
         self, readings: dict[str, list[tuple[str, int]]]
     ) -> None:
         """
-        Adjust active vehicles to match sensor readings.
+        Set target vehicle counts from sensor readings.
+        Actual spawn/despawn happens gradually in tick().
 
         readings: {sensor_id: [(csv_vehicle_type, count), ...]}
         """
         # Build desired counts per (sensor, mapped_type)
-        desired: dict[tuple[str, str], int] = defaultdict(int)
         for sensor_id, pairs in readings.items():
             if sensor_id not in self._sensor_nodes:
                 continue
+            # Reset targets for this sensor's types
+            existing_types = {k[1] for k in self._targets if k[0] == sensor_id}
+            for t in existing_types:
+                self._targets[(sensor_id, t)] = 0
             for raw_type, count in pairs:
                 mapped = VEHICLE_TYPE_MAP.get(raw_type, raw_type)
-                desired[(sensor_id, mapped)] += count
+                self._targets[(sensor_id, mapped)] += count
 
-        # Only adjust sensors that actually reported in this timestamp.
-        # Sensors that didn't report keep their vehicles driving.
-        reporting_sensors = set(readings.keys())
-
-        for key in set(desired.keys()):
-            want = desired[key]
-            # Clean stale IDs from bucket
+    def _apply_gradual_changes(self) -> None:
+        """Gradually adjust vehicle counts toward targets (called each tick)."""
+        all_keys = set(self._targets.keys()) | set(self._bucket.keys())
+        for key in all_keys:
+            want = self._targets.get(key, 0)
+            # Clean stale IDs
             self._bucket[key] = [
                 vid for vid in self._bucket[key] if vid in self._vehicles
             ]
@@ -277,24 +286,16 @@ class TrafficSimulation:
             sensor_id, vehicle_type = key
 
             if have < want:
-                for _ in range(want - have):
+                to_spawn = min(want - have, self._max_change_per_tick)
+                for _ in range(to_spawn):
                     self._spawn(sensor_id, vehicle_type)
             elif have > want:
-                self._despawn(sensor_id, vehicle_type, have - want)
-
-        # For reporting sensors that had a type before but now report 0,
-        # despawn those specific types
-        for key in list(self._bucket.keys()):
-            sensor_id, vehicle_type = key
-            if sensor_id in reporting_sensors and key not in desired:
-                self._bucket[key] = [
-                    vid for vid in self._bucket[key] if vid in self._vehicles
-                ]
-                if self._bucket[key]:
-                    self._despawn(sensor_id, vehicle_type, len(self._bucket[key]))
+                to_despawn = min(have - want, self._max_change_per_tick)
+                self._despawn(sensor_id, vehicle_type, to_despawn)
 
     def tick(self, dt: float) -> None:
-        """Advance all vehicles by dt seconds."""
+        """Advance all vehicles and gradually adjust counts toward targets."""
+        self._apply_gradual_changes()
         for v in self._vehicles.values():
             v.move(dt)
 
