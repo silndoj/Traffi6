@@ -168,70 +168,87 @@ class Vehicle:
         self.target_node = start_node
         self.progress = 0.0
         self._edge_length = 0.0
+        self._recent_nodes = []  # anti-backtrack memory
 
         self._pick_next_target()
+
+    def _teleport_to_central(self):
+        """Move to a random well-connected central node."""
+        new_node = self._net.random_central_node()
+        self.current_node = new_node
+        self.target_node = new_node
+        lat, lon = self._net.position_of(new_node)
+        self.x = lat
+        self.y = lon
+        self._recent_nodes = []
 
     def _pick_next_target(self):
         neighbors = self._net.neighbors_of(self.target_node)
         if not neighbors:
-            # Dead end — teleport to a random CENTRAL node (not edge)
-            new_node = self._net.random_central_node()
-            self.current_node = new_node
-            self.target_node = new_node
-            lat, lon = self._net.position_of(new_node)
-            self.x = lat
-            self.y = lon
-            neighbors = self._net.neighbors_of(new_node)
+            self._teleport_to_central()
+            neighbors = self._net.neighbors_of(self.target_node)
             if not neighbors:
                 return
 
-        candidates = [n for n in neighbors if n != self.current_node]
-        if not candidates:
-            candidates = neighbors
+        # Filter: exclude dead ends (1 neighbor) and recently visited nodes
+        good = [n for n in neighbors
+                if n != self.current_node
+                and n not in self._recent_nodes
+                and len(self._net.neighbors_of(n)) >= 2]
 
-        weights = [self._net.weight_of(n) for n in candidates]
+        # Fallback: if all neighbors are dead ends, at least avoid recent
+        if not good:
+            good = [n for n in neighbors if n != self.current_node and n not in self._recent_nodes]
+        if not good:
+            good = [n for n in neighbors if n != self.current_node]
+        if not good:
+            good = neighbors
 
-        # Attraction-aware routing: steer toward assigned sensor node
+        weights = [self._net.weight_of(n) for n in good]
+
+        # Attraction-aware routing
         if self.attraction_node is not None:
             attr_lat, attr_lon = self._net.position_of(self.attraction_node)
             my_dist = _latlon_distance_m(attr_lat, attr_lon, self.x, self.y)
-
-            if my_dist > 500:  # >500m from target: actively route toward it
-                for i, n in enumerate(candidates):
+            if my_dist > 500:
+                for i, n in enumerate(good):
                     n_lat, n_lon = self._net.position_of(n)
                     n_dist = _latlon_distance_m(attr_lat, attr_lon, n_lat, n_lon)
                     if n_dist < my_dist:
-                        weights[i] *= 3.0  # strongly prefer getting closer
+                        weights[i] *= 3.0
 
         # Boundary containment
         dist_from_center = _latlon_distance_m(CENTER_LAT, CENTER_LON, self.x, self.y)
         if dist_from_center > 4500:
-            # Hard redirect: teleport to central node
-            new_node = self._net.random_central_node()
-            self.current_node = new_node
-            self.target_node = new_node
-            lat, lon = self._net.position_of(new_node)
-            self.x = lat
-            self.y = lon
-            neighbors = self._net.neighbors_of(new_node)
+            self._teleport_to_central()
+            neighbors = self._net.neighbors_of(self.target_node)
             if not neighbors:
                 return
-            candidates = neighbors
-            weights = [self._net.weight_of(n) for n in candidates]
+            good = [n for n in neighbors if len(self._net.neighbors_of(n)) >= 2] or neighbors
+            weights = [self._net.weight_of(n) for n in good]
         elif dist_from_center > BOUNDARY_RADIUS_M:
             boost = 2.0 + (dist_from_center - BOUNDARY_RADIUS_M) / 200
-            for i, n in enumerate(candidates):
+            for i, n in enumerate(good):
                 n_lat, n_lon = self._net.position_of(n)
                 n_dist = _latlon_distance_m(CENTER_LAT, CENTER_LON, n_lat, n_lon)
                 if n_dist < dist_from_center:
                     weights[i] *= boost
 
+        # Update anti-backtrack memory (keep last 3)
+        self._recent_nodes.append(self.current_node)
+        if len(self._recent_nodes) > 3:
+            self._recent_nodes.pop(0)
+
         self.current_node = self.target_node
-        self.target_node = random.choices(candidates, weights=weights, k=1)[0]
+        self.target_node = random.choices(good, weights=weights, k=1)[0]
         self.progress = 0.0
         self._edge_length = self._net.edge_length_m(self.current_node, self.target_node)
 
     def move(self, dt):
+        # Skip micro-edges (<10m) instantly — prevents jittery movement
+        if 0 < self._edge_length < 10:
+            self._pick_next_target()
+
         if self._edge_length <= 0:
             self._pick_next_target()
             if self._edge_length <= 0:
