@@ -25,11 +25,11 @@ const state = {
 const VEHICLE_TYPES = ["car", "truck", "motor_bike", "bicycle", "foot"];
 
 const ICON_SIZES = {
-  car: [20, 20],
-  truck: [36, 24],
-  motor_bike: [32, 28],
-  bicycle: [30, 24],
-  foot: [28, 28],
+  car: [16, 16],
+  truck: [22, 16],
+  motor_bike: [20, 18],
+  bicycle: [18, 16],
+  foot: [16, 16],
 };
 
 const ICON_CACHE = {};
@@ -208,7 +208,7 @@ async function fetchIntelligence() {
     const container = document.getElementById("peak-hours");
     if (data.peak_hours) {
       container.innerHTML =
-        '<div class="section-label">STOSSZEITEN</div>' +
+        '<div class="section-label">PEAK HOURS</div>' +
         data.peak_hours
           .slice(0, 3)
           .map(
@@ -271,7 +271,8 @@ function updateTrafficLights(lights) {
       }
     } else {
       // Create new traffic light marker
-      var size = tl.degree >= 5 ? 10 : 7;
+      var size = tl.degree >= 5 ? 6 : 4;
+      var opacity = tl.state === "green" ? 0.5 : tl.state === "red" ? 0.7 : 0.9;
       var icon = L.divIcon({
         className: "tl-icon",
         iconSize: [size, size],
@@ -283,7 +284,9 @@ function updateTrafficLights(lights) {
           size +
           "px;background:" +
           TL_COLORS[tl.state] +
-          ";border-radius:50%;box-shadow:0 0 4px " +
+          ";border-radius:50%;opacity:" +
+          opacity +
+          ";box-shadow:0 0 3px " +
           TL_COLORS[tl.state] +
           ';"></div>',
       });
@@ -480,24 +483,8 @@ function wsSend(msg) {
 // ── REST Fetches ────────────────────────────────────────────────────────────
 
 async function fetchStats() {
-  try {
-    const res = await fetch("/api/stats");
-    if (!res.ok) return;
-    const data = await res.json();
-    if (data.by_type) {
-      for (const type of VEHICLE_TYPES) {
-        const el = document.getElementById(`count-${type}`);
-        if (el && data.by_type[type] !== undefined) {
-          el.textContent = formatNumber(data.by_type[type]);
-        }
-      }
-    }
-    if (data.total_vehicles !== undefined) {
-      dom.totalVehicles.textContent = formatNumber(data.total_vehicles);
-    }
-  } catch (e) {
-    // Stats endpoint may not be available yet
-  }
+  // Don't fetch historical totals — WebSocket provides live pool counts
+  // Historical data (589K total) would flash before live counts (750) appear
 }
 
 async function fetchTimeline() {
