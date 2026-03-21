@@ -299,18 +299,23 @@ async def ws_traffic(ws: WebSocket):
                 await asyncio.sleep(1)
                 continue
 
-            # --- Feed real data based on speed-adjusted tick rate ----------
-            # Speed controls how many timestamps pass per second, NOT fps
-            # At 1x: 1 timestamp per 2 seconds (20 ticks × 0.1s)
-            # At 10x: 10 timestamps per 2 seconds
-            effective_ticks = max(2, int(TICKS_PER_TIMESTAMP / speed_multiplier))
+            # --- Speed logic ---
+            # Each frame: run multiple sim steps + advance timestamps faster
+            # 1x:  1 sim step,  advance every 20 frames
+            # 5x:  2 sim steps, advance every 4 frames
+            # 10x: 3 sim steps, advance every 2 frames
+            # 50x: 5 sim steps, advance every 1 frame
+            sim_steps = min(5, max(1, int(speed_multiplier / 3) + 1))
+            effective_ticks = max(1, int(TICKS_PER_TIMESTAMP / speed_multiplier))
 
-            if tick_count % effective_ticks == 0:
+            if tick_count == 0:
                 readings = database.get_readings_at(timestamps[ts_index])
                 sim.update_from_data(readings)
                 current_anomalies = detect_anomalies(readings, sensor_stats)
 
-            sim.tick(0.1)
+            for _ in range(sim_steps):
+                sim.tick(0.1)
+
             positions = sim.get_positions()
 
             global _current_ws_step
@@ -329,7 +334,6 @@ async def ws_traffic(ws: WebSocket):
                 tick_count = 0
                 ts_index = (ts_index + 1) % len(timestamps)
 
-            # Always 10fps — speed is handled by faster timestamp advancement
             await asyncio.sleep(DEFAULT_FRAME_INTERVAL)
 
     except WebSocketDisconnect:
