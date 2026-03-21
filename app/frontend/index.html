@@ -67,6 +67,33 @@
       </div>
     </div>
 
+    <div class="intelligence-section">
+      <div class="section-label">VERKEHRSINTELLIGENZ</div>
+
+      <button id="btn-heatmap" class="toggle-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+          <circle cx="12" cy="12" r="4"/>
+        </svg>
+        Heatmap
+      </button>
+
+      <div id="peak-hours" class="peak-section">
+        <div class="section-label">STOSSZEITEN</div>
+      </div>
+
+      <div id="alerts" class="alerts-section">
+        <div class="section-label">WARNUNGEN</div>
+        <div id="alert-list"></div>
+      </div>
+
+      <div class="qr-section">
+        <div class="section-label">MOBIL ZUGANG</div>
+        <div id="qr-code"></div>
+        <div class="qr-label">Scannen für Live-Verkehr</div>
+      </div>
+    </div>
+
     <div class="totals-section">
       <div class="total-card">
         <span class="total-label">Gesamt</span>
@@ -120,6 +147,8 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

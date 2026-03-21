@@ -1,12 +1,8 @@
 """
-simulation.py — Data-driven traffic simulation on real Karlsruhe road network.
+simulation.py — Constant-pool traffic simulation on real Karlsruhe road network.
 
-Two-layer architecture:
-  1. Base traffic (570 vehicles) — permanent fleet, always on roads, never despawned
-  2. Sensor traffic — additional vehicles modulated by real sensor data with:
-     - Rolling average (5-step window) to smooth volatile sensor swings
-     - Global despawn cap (max 15/tick) to prevent mass vanishing
-     - Boundary containment to keep vehicles on-screen
+Exactly POOL_SIZE (750) vehicles exist at ALL times. Sensor data controls WHERE
+vehicles cluster via attraction zones, not how many exist. No spawn/despawn.
 """
 
 import math
@@ -44,23 +40,15 @@ VEHICLE_TYPE_MAP = {
     "bicycle": "bicycle",
 }
 
-# Base traffic — permanent vehicles that make the city alive
-BASE_TRAFFIC = [
-    ("car", 400),
-    ("truck", 45),
-    ("motor_bike", 70),
-    ("bicycle", 35),
-    ("foot", 20),
-]
-
-# Sensor data amplification (reduced from 3 to 2 — base traffic already fills the map)
-SENSOR_AMPLIFIER = 2
-
-# Rolling average window for smoothing sensor targets
-HISTORY_WINDOW = 5
-
-# Global despawn cap — max vehicles removed per tick across ALL buckets
-MAX_TOTAL_DESPAWN_PER_TICK = 15
+# Constant pool — exactly this many vehicles exist at all times
+POOL_SIZE = 750
+POOL_COMPOSITION = {
+    "car": 0.65,
+    "truck": 0.08,
+    "motor_bike": 0.15,
+    "bicycle": 0.07,
+    "foot": 0.05,
+}
 
 # Boundary containment radius (meters) — beyond this, vehicles pushed toward center
 BOUNDARY_RADIUS_M = 3500
@@ -170,6 +158,7 @@ class Vehicle:
         self.vehicle_type = vehicle_type
         self.speed = SPEED_MAP.get(vehicle_type, 10.0)
         self._net = road_network
+        self.attraction_node = None
 
         lat, lon = road_network.position_of(start_node)
         self.x = lat
@@ -201,6 +190,18 @@ class Vehicle:
             candidates = neighbors
 
         weights = [self._net.weight_of(n) for n in candidates]
+
+        # Attraction-aware routing: steer toward assigned sensor node
+        if self.attraction_node is not None:
+            attr_lat, attr_lon = self._net.position_of(self.attraction_node)
+            my_dist = _latlon_distance_m(attr_lat, attr_lon, self.x, self.y)
+
+            if my_dist > 500:  # >500m from target: actively route toward it
+                for i, n in enumerate(candidates):
+                    n_lat, n_lon = self._net.position_of(n)
+                    n_dist = _latlon_distance_m(attr_lat, attr_lon, n_lat, n_lon)
+                    if n_dist < my_dist:
+                        weights[i] *= 3.0  # strongly prefer getting closer
 
         # Boundary containment: if far from center, strongly prefer inward movement
         dist_from_center = _latlon_distance_m(CENTER_LAT, CENTER_LON, self.x, self.y)
@@ -240,34 +241,29 @@ class Vehicle:
 
 
 class TrafficSimulation:
-    """Data-driven simulation with base traffic + smoothed sensor modulation."""
+    """Constant-pool simulation: exactly POOL_SIZE vehicles at all times."""
 
     def __init__(self, sensor_positions):
         self.road_network = RoadNetwork()
-        self._next_id = 0
         self._vehicles = {}
+        self._attractions = {}  # vehicle_id → target_sensor_node (or None)
 
         # Map each sensor to its nearest road node
         self._sensor_nodes = {}
         for sensor_id, (lat, lon) in sensor_positions.items():
             self._sensor_nodes[sensor_id] = self.road_network.nearest_node(lat, lon)
 
-        # Sensor-driven vehicle tracking
-        self._bucket = defaultdict(list)
-        self._targets = defaultdict(int)
-        self._history = defaultdict(list)  # rolling average window
+        # Create exactly POOL_SIZE vehicles with fixed composition
+        self._create_pool()
 
-        # Base traffic — permanent vehicles
-        self._base_vehicle_ids = set()
-        self._spawn_base_traffic()
-
-    def _spawn_base_traffic(self):
-        for vehicle_type, base_count in BASE_TRAFFIC:
-            for _ in range(base_count):
-                vid = self._next_id
-                self._next_id += 1
+    def _create_pool(self):
+        vid = 0
+        for vehicle_type, share in POOL_COMPOSITION.items():
+            count = round(share * POOL_SIZE)
+            for _ in range(count):
                 node = self.road_network.random_connected_node()
                 v = Vehicle(vid, vehicle_type, self.road_network, node)
+                # Scatter initial progress so vehicles don't all start at nodes
                 v.progress = random.random()
                 if v._edge_length > 0:
                     lat1, lon1 = self.road_network.position_of(v.current_node)
@@ -275,119 +271,97 @@ class TrafficSimulation:
                     v.x = lat1 + (lat2 - lat1) * v.progress
                     v.y = lon1 + (lon2 - lon1) * v.progress
                 self._vehicles[vid] = v
-                self._base_vehicle_ids.add(vid)
+                self._attractions[vid] = None
+                vid += 1
 
-        print(f"[sim] Base traffic: {len(self._base_vehicle_ids)} vehicles")
+        # Fix rounding: add or remove to hit exactly POOL_SIZE
+        while len(self._vehicles) < POOL_SIZE:
+            node = self.road_network.random_connected_node()
+            v = Vehicle(vid, "car", self.road_network, node)
+            self._vehicles[vid] = v
+            self._attractions[vid] = None
+            vid += 1
+        # If rounding overshot, remove the last added (unlikely, but safe)
+        while len(self._vehicles) > POOL_SIZE:
+            last_vid = max(self._vehicles.keys())
+            del self._vehicles[last_vid]
+            del self._attractions[last_vid]
 
-    def _spawn(self, sensor_id, vehicle_type):
-        vid = self._next_id
-        self._next_id += 1
-        node = self._sensor_nodes[sensor_id]
-        neighbors = self.road_network.neighbors_of(node)
-        start = random.choice(neighbors) if neighbors else node
-        v = Vehicle(vid, vehicle_type, self.road_network, start)
-        self._vehicles[vid] = v
-        self._bucket[(sensor_id, vehicle_type)].append(vid)
-        return v
-
-    def _despawn(self, sensor_id, vehicle_type, count):
-        key = (sensor_id, vehicle_type)
-        bucket = self._bucket[key]
-        if not bucket or count <= 0:
-            return 0
-
-        sensor_node = self._sensor_nodes[sensor_id]
-        slat, slon = self.road_network.position_of(sensor_node)
-
-        def dist_from_sensor(vid):
-            v = self._vehicles.get(vid)
-            if v is None:
-                return -1.0
-            return _latlon_distance_m(slat, slon, v.x, v.y)
-
-        bucket.sort(key=dist_from_sensor, reverse=True)
-
-        removed = 0
-        new_bucket = []
-        for vid in bucket:
-            if removed < count and vid in self._vehicles:
-                del self._vehicles[vid]
-                removed += 1
-            else:
-                new_bucket.append(vid)
-        self._bucket[key] = new_bucket
-        return removed
+        print(f"[sim] Constant pool: {len(self._vehicles)} vehicles "
+              f"(target: {POOL_SIZE})")
 
     def update_from_data(self, readings):
-        """Update sensor targets using rolling average for smoothing."""
+        """Redistribute attraction zones based on sensor data."""
+        # Flatten readings into {sensor_id: total_count}
+        sensor_totals = {}
         for sensor_id, pairs in readings.items():
             if sensor_id not in self._sensor_nodes:
                 continue
-            # Reset this sensor's types that are no longer reported
-            existing_types = {k[1] for k in self._history if k[0] == sensor_id}
-            reported_types = set()
-            for raw_type, count in pairs:
-                mapped = VEHICLE_TYPE_MAP.get(raw_type, raw_type)
-                reported_types.add(mapped)
-                key = (sensor_id, mapped)
-                self._history[key].append(count * SENSOR_AMPLIFIER)
-                if len(self._history[key]) > HISTORY_WINDOW:
-                    self._history[key].pop(0)
-                # Target = average of rolling window
-                self._targets[key] = max(0, int(
-                    sum(self._history[key]) / len(self._history[key])
-                ))
-            # For types this sensor no longer reports, push a 0 into history
-            for t in existing_types - reported_types:
-                key = (sensor_id, t)
-                self._history[key].append(0)
-                if len(self._history[key]) > HISTORY_WINDOW:
-                    self._history[key].pop(0)
-                self._targets[key] = max(0, int(
-                    sum(self._history[key]) / len(self._history[key])
-                ))
+            total = 0
+            for _raw_type, count in pairs:
+                total += count
+            sensor_totals[sensor_id] = total
 
-    def _apply_gradual_changes(self):
-        """Spawn freely, despawn with global cap to prevent mass vanishing."""
-        all_keys = set(self._targets.keys()) | set(self._bucket.keys())
+        grand_total = sum(sensor_totals.values())
+        if grand_total <= 0:
+            # No data — clear all attractions (free roam)
+            for vid in self._attractions:
+                self._attractions[vid] = None
+                self._vehicles[vid].attraction_node = None
+            return
 
-        # Phase 1: Process spawns (no global limit — adding vehicles is good)
-        for key in all_keys:
-            want = self._targets.get(key, 0)
-            self._bucket[key] = [
-                vid for vid in self._bucket[key]
-                if vid in self._vehicles and vid not in self._base_vehicle_ids
-            ]
-            have = len(self._bucket[key])
-            sensor_id, vehicle_type = key
+        # Sort sensors by count descending (busiest first)
+        sorted_sensors = sorted(
+            sensor_totals.items(), key=lambda kv: kv[1], reverse=True
+        )
 
-            if have < want:
-                to_spawn = min(want - have, 5)
-                for _ in range(to_spawn):
-                    self._spawn(sensor_id, vehicle_type)
+        # Compute how many vehicles each sensor should attract
+        sensor_allocations = []
+        allocated_so_far = 0
+        for i, (sensor_id, count) in enumerate(sorted_sensors):
+            if i == len(sorted_sensors) - 1:
+                # Last sensor gets the remainder to avoid rounding drift
+                alloc = POOL_SIZE - allocated_so_far
+            else:
+                alloc = round((count / grand_total) * POOL_SIZE)
+            alloc = max(0, min(alloc, POOL_SIZE - allocated_so_far))
+            sensor_allocations.append((sensor_id, alloc))
+            allocated_so_far += alloc
 
-        # Phase 2: Process despawns with GLOBAL cap
-        total_despawned = 0
-        for key in all_keys:
-            if total_despawned >= MAX_TOTAL_DESPAWN_PER_TICK:
-                break
-            want = self._targets.get(key, 0)
-            self._bucket[key] = [
-                vid for vid in self._bucket[key]
-                if vid in self._vehicles and vid not in self._base_vehicle_ids
-            ]
-            have = len(self._bucket[key])
-            sensor_id, vehicle_type = key
+        # Build list of all vehicle ids with their distance to each sensor
+        all_vids = list(self._vehicles.keys())
+        assigned = set()
 
-            if have > want:
-                allowed = MAX_TOTAL_DESPAWN_PER_TICK - total_despawned
-                to_despawn = min(have - want, 2, allowed)
-                if to_despawn > 0:
-                    removed = self._despawn(sensor_id, vehicle_type, to_despawn)
-                    total_despawned += removed
+        for sensor_id, alloc in sensor_allocations:
+            if alloc <= 0:
+                continue
+
+            sensor_node = self._sensor_nodes[sensor_id]
+            slat, slon = self.road_network.position_of(sensor_node)
+
+            # Score unassigned vehicles by distance to this sensor
+            candidates = []
+            for vid in all_vids:
+                if vid in assigned:
+                    continue
+                v = self._vehicles[vid]
+                dist = _latlon_distance_m(slat, slon, v.x, v.y)
+                candidates.append((dist, vid))
+
+            # Pick the closest `alloc` vehicles
+            candidates.sort()
+            for _, vid in candidates[:alloc]:
+                self._attractions[vid] = sensor_node
+                self._vehicles[vid].attraction_node = sensor_node
+                assigned.add(vid)
+
+        # Unassigned vehicles: free roam
+        for vid in all_vids:
+            if vid not in assigned:
+                self._attractions[vid] = None
+                self._vehicles[vid].attraction_node = None
 
     def tick(self, dt):
-        self._apply_gradual_changes()
         for v in self._vehicles.values():
             v.move(dt)
 

@@ -158,6 +158,92 @@ def get_stats():
     }
 
 
+def get_traffic_status(current_timestamp=None):
+    """Compute a traffic status summary for the mobile card.
+
+    Returns level, anomalies, busiest sensor, etc. based on the
+    readings at *current_timestamp* (or the latest timestamp if None).
+    """
+    conn = get_connection()
+
+    if current_timestamp is None:
+        row = conn.execute(
+            "SELECT timestamp FROM readings ORDER BY timestamp DESC LIMIT 1"
+        ).fetchone()
+        current_timestamp = row[0] if row else None
+
+    if current_timestamp is None:
+        conn.close()
+        return {
+            "level": "low",
+            "level_color": "#22c55e",
+            "total_vehicles": 0,
+            "active_sensors": 0,
+            "anomaly_count": 0,
+            "anomalies": [],
+            "busiest_sensor": None,
+            "timestamp": None,
+        }
+
+    rows = conn.execute(
+        "SELECT sensor_id, SUM(count) as total FROM readings WHERE timestamp = ? GROUP BY sensor_id",
+        (current_timestamp,),
+    ).fetchall()
+    conn.close()
+
+    sensor_counts = {r["sensor_id"]: r["total"] for r in rows}
+    active_sensors = len(sensor_counts)
+    total_vehicles = sum(sensor_counts.values())
+
+    if active_sensors == 0:
+        avg, std = 0.0, 0.0
+    else:
+        counts = list(sensor_counts.values())
+        avg = sum(counts) / len(counts)
+        variance = sum((c - avg) ** 2 for c in counts) / len(counts)
+        std = variance ** 0.5
+
+    anomalies = []
+    threshold = avg + 2 * std if std > 0 else avg + 1
+    for sid, count in sensor_counts.items():
+        if count > threshold and count > 0:
+            severity = "high" if count > avg + 3 * std else "medium"
+            anomalies.append({
+                "sensor_id": sid,
+                "count": count,
+                "severity": severity,
+                "type": "high_volume",
+            })
+
+    busiest_sid = max(sensor_counts, key=sensor_counts.get) if sensor_counts else None
+    busiest_sensor = (
+        {"sensor_id": busiest_sid, "count": sensor_counts[busiest_sid]}
+        if busiest_sid
+        else None
+    )
+
+    density = total_vehicles / max(active_sensors, 1)
+    if density > 8:
+        level, level_color = "critical", "#ef4444"
+    elif density > 5:
+        level, level_color = "high", "#f97316"
+    elif density > 2:
+        level, level_color = "medium", "#f59e0b"
+    else:
+        level, level_color = "low", "#22c55e"
+
+    return {
+        "level": level,
+        "level_color": level_color,
+        "total_vehicles": total_vehicles,
+        "active_sensors": active_sensors,
+        "anomaly_count": len(anomalies),
+        "anomalies": anomalies,
+        "busiest_sensor": busiest_sensor,
+        "timestamp": current_timestamp,
+    }
+
+
 def update_sensor_positions(mapping):
     """Update sensors table with GPS coordinates."""
     conn = get_connection()

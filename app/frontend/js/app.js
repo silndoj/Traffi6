@@ -10,6 +10,8 @@ const state = {
   timeline: { totalSteps: 0, currentStep: 0, startTime: "", endTime: "" },
   reconnectDelay: 1000,
   counts: { car: 0, truck: 0, motor_bike: 0, bicycle: 0, foot: 0 },
+  heatmapLayer: null,
+  heatmapVisible: false,
 };
 
 const VEHICLE_TYPES = ["car", "truck", "motor_bike", "bicycle", "foot"];
@@ -122,6 +124,117 @@ function initMap() {
   }).addTo(state.map);
 }
 
+// ── Heatmap ─────────────────────────────────────────────────────────────────
+
+function initHeatmap() {
+  state.heatmapLayer = L.heatLayer([], {
+    radius: 30,
+    blur: 20,
+    maxZoom: 17,
+    gradient: {
+      0.2: "#3b82f6",
+      0.4: "#22c55e",
+      0.6: "#f59e0b",
+      0.8: "#ef4444",
+      1.0: "#dc2626",
+    },
+  });
+
+  document.getElementById("btn-heatmap").addEventListener("click", () => {
+    state.heatmapVisible = !state.heatmapVisible;
+    document.getElementById("btn-heatmap").classList.toggle("active");
+    if (state.heatmapVisible) {
+      state.heatmapLayer.addTo(state.map);
+    } else {
+      state.map.removeLayer(state.heatmapLayer);
+    }
+  });
+}
+
+// ── Alerts ──────────────────────────────────────────────────────────────────
+
+function renderAlerts(anomalies) {
+  const container = document.getElementById("alert-list");
+  if (!anomalies.length) {
+    container.innerHTML = '<div class="no-alerts">Keine Warnungen</div>';
+    return;
+  }
+  container.innerHTML = anomalies
+    .slice(0, 3)
+    .map((a) => {
+      const severityClass = a.severity > 3 ? "danger" : "warning";
+      const typeLabel =
+        a.type === "high_traffic" ? "Hohes Verkehrsaufkommen" : a.type;
+      const sensorLabel = "Sensor " + a.sensor_id.slice(0, 8) + "...";
+      return (
+        '<div class="alert-card ' +
+        severityClass +
+        '">' +
+        '<div class="alert-severity">' +
+        a.severity.toFixed(1) +
+        "\u03C3</div>" +
+        '<div class="alert-info">' +
+        '<div class="alert-type">' +
+        typeLabel +
+        "</div>" +
+        '<div class="alert-sensor">' +
+        sensorLabel +
+        "</div>" +
+        "</div>" +
+        "</div>"
+      );
+    })
+    .join("");
+}
+
+// ── Intelligence ────────────────────────────────────────────────────────────
+
+async function fetchIntelligence() {
+  try {
+    const res = await fetch("/api/intelligence");
+    if (!res.ok) return;
+    const data = await res.json();
+    const container = document.getElementById("peak-hours");
+    if (data.peak_hours) {
+      container.innerHTML =
+        '<div class="section-label">STOSSZEITEN</div>' +
+        data.peak_hours
+          .slice(0, 3)
+          .map(
+            (p) =>
+              '<div class="peak-item">' +
+              '<span class="peak-hour">' +
+              p.hour +
+              "</span>" +
+              '<span class="peak-count">' +
+              formatNumber(Math.round(p.avg_vehicles)) +
+              " Fhz.</span>" +
+              "</div>",
+          )
+          .join("");
+    }
+  } catch (e) {
+    // Intelligence endpoint may not be available yet
+  }
+}
+
+// ── QR Code ─────────────────────────────────────────────────────────────────
+
+function generateQR() {
+  const url =
+    window.location.protocol +
+    "//" +
+    window.location.hostname +
+    ":8000/mobile.html";
+  new QRCode(document.getElementById("qr-code"), {
+    text: url,
+    width: 100,
+    height: 100,
+    colorDark: "#e4e4e7",
+    colorLight: "#1a1d27",
+  });
+}
+
 // ── Marker Pool ─────────────────────────────────────────────────────────────
 
 function updateMarkers(vehicles) {
@@ -228,6 +341,16 @@ function connectWebSocket() {
       }
       if (data.step !== undefined) {
         updateTimeline(data.step, data.total_steps);
+      }
+
+      // Heatmap data from WebSocket
+      if (data.heatmap && state.heatmapVisible) {
+        state.heatmapLayer.setLatLngs(data.heatmap);
+      }
+
+      // Anomaly alerts from WebSocket
+      if (data.anomalies) {
+        renderAlerts(data.anomalies);
       }
     } catch (e) {
       console.error("WebSocket message parse error:", e);
@@ -361,6 +484,7 @@ function initControls() {
 
 document.addEventListener("DOMContentLoaded", () => {
   initMap();
+  initHeatmap();
   initControls();
   connectWebSocket();
 
@@ -368,4 +492,6 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchStats();
   fetchTimeline();
   fetchSensors();
+  fetchIntelligence();
+  generateQR();
 });
