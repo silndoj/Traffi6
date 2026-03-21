@@ -32,7 +32,14 @@
 html,
 body {
   height: 100%;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   overflow: hidden;
@@ -113,11 +120,13 @@ body {
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -198,7 +207,9 @@ body {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 14px;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .stat-card:hover {
@@ -306,7 +317,9 @@ body {
   height: 8px;
   border-radius: 50%;
   background: var(--color-truck);
-  transition: background 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    background 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .status-dot.connected {
@@ -371,7 +384,7 @@ body {
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -418,7 +431,9 @@ body {
   background: rgba(255, 255, 255, 0.08);
   border-radius: 1px;
   cursor: pointer;
-  transition: height 0.15s ease, background 0.15s ease;
+  transition:
+    height 0.15s ease,
+    background 0.15s ease;
 }
 
 .timeline-track:hover {
@@ -489,7 +504,7 @@ body {
   background: rgba(10, 15, 30, 0.7) !important;
   color: var(--text-muted) !important;
   font-size: 10px !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: "Inter", sans-serif !important;
 }
 
 .leaflet-control-attribution a {
@@ -547,7 +562,7 @@ body {
   border-radius: 20px;
   color: var(--text-secondary);
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   transition: all 0.2s ease;
@@ -676,6 +691,43 @@ body {
   border-radius: 12px;
 }
 
+/* ── Sensor Pulse Dots ──────────────────────── */
+
+.sensor-pulse {
+  background: transparent !important;
+  border: none !important;
+}
+.pulse-dot {
+  width: 5px;
+  height: 5px;
+  background: rgba(74, 144, 217, 0.5);
+  border-radius: 50%;
+  position: absolute;
+  top: 3.5px;
+  left: 3.5px;
+}
+.pulse-ring {
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(74, 144, 217, 0.25);
+  border-radius: 50%;
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  animation: pulse-expand 3s ease-out infinite;
+  opacity: 0;
+}
+@keyframes pulse-expand {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
 /* ── Traffic Lights ─────────────────────────── */
 
 .tl-icon {
@@ -685,7 +737,9 @@ body {
 }
 
 .tl-dot {
-  transition: background 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    background 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 /* ── Signal Intelligence ───────────────────── */
@@ -811,7 +865,7 @@ body {
   border-radius: 6px;
   text-transform: uppercase;
   letter-spacing: 1.2px;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
 .rec-sensor {
@@ -851,7 +905,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 0.8s ease, visibility 0.8s ease;
+  transition:
+    opacity 0.8s ease,
+    visibility 0.8s ease;
 }
 
 #loading-overlay.hidden {
@@ -877,7 +933,8 @@ body {
 }
 
 @keyframes loading-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 0.8;
   }
@@ -889,7 +946,7 @@ body {
 
 .loading-title {
   color: var(--text-primary);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 28px;
   font-weight: 700;
   margin-bottom: 6px;
@@ -898,7 +955,7 @@ body {
 
 .loading-subtitle {
   color: var(--text-secondary);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 13px;
   font-weight: 400;
   margin-bottom: 28px;
