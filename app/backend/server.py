@@ -19,6 +19,13 @@ from analytics import (
     compute_congestion_grid,
     compute_traffic_status,
 )
+from signals import (
+    compute_intersection_analysis,
+    find_coordination_pairs,
+    compute_city_summary,
+    model_signal_recommendations,
+    model_green_wave_corridors,
+)
 
 # ---------------------------------------------------------------------------
 # Sensor mapping — reuse the GIS module from the old codebase
@@ -134,6 +141,18 @@ sensor_stats = compute_sensor_stats()
 peak_hours = compute_peak_hours()
 print(f"[server] Peak hours computed, sensor stats ready")
 
+# Signal intelligence
+import json as _json
+with open(os.path.join(os.path.dirname(__file__), 'sensor_positions.json')) as _f:
+    _sensor_positions_raw = {k: tuple(v) for k, v in _json.load(_f).items()}
+
+signal_analysis = compute_intersection_analysis()
+coordination_pairs = find_coordination_pairs(_sensor_positions_raw)
+city_summary = compute_city_summary(signal_analysis, coordination_pairs)
+signal_recommendations = model_signal_recommendations(signal_analysis)
+green_corridors = model_green_wave_corridors(coordination_pairs, _sensor_positions_raw)
+print(f"[server] Signal intelligence: {city_summary['pct_needs_adaptive']}% need adaptive, {len(green_corridors)} corridors")
+
 print(f"[server] {len(sensor_ids)} sensors | {len(timestamps):,} timestamps loaded")
 
 # Track current WebSocket step for REST endpoints
@@ -205,6 +224,31 @@ def api_traffic_status():
     status["anomalies"] = anomalies
     status["timestamp"] = current_ts
     return status
+
+
+@app.get("/api/signals")
+def api_signals():
+    """Per-sensor analysis (real) + recommendations (modeled)."""
+    result = {}
+    for sid, analysis in signal_analysis.items():
+        entry = dict(analysis)
+        if sid in _sensor_positions_raw:
+            entry["lat"] = _sensor_positions_raw[sid][0]
+            entry["lon"] = _sensor_positions_raw[sid][1]
+        if sid in signal_recommendations:
+            entry["recommendation"] = signal_recommendations[sid]
+        result[sid] = entry
+    return result
+
+
+@app.get("/api/corridors")
+def api_corridors():
+    return green_corridors
+
+
+@app.get("/api/city-summary")
+def api_city_summary():
+    return city_summary
 
 
 # ---------------------------------------------------------------------------
