@@ -136,16 +136,16 @@ function initMap() {
 
 function initHeatmap() {
   state.heatmapLayer = L.heatLayer([], {
-    radius: 30,
-    blur: 20,
+    radius: 45,
+    blur: 30,
     maxZoom: 20,
-    minOpacity: 0.15,
+    minOpacity: 0.1,
     max: 1.0,
     gradient: {
-      0.0: "#1a1d27",
-      0.15: "#3b82f6",
-      0.35: "#22c55e",
-      0.55: "#f59e0b",
+      0.0: "transparent",
+      0.1: "#3b82f6",
+      0.3: "#22c55e",
+      0.5: "#f59e0b",
       0.75: "#ef4444",
       1.0: "#dc2626",
     },
@@ -435,10 +435,10 @@ function connectWebSocket() {
       }
 
       // Heatmap: use vehicle positions as heat points
-      // Intensity 0.03 per vehicle — 30 overlapping = 0.9 (near max)
+      // Intensity 0.12 per vehicle — 3 overlapping = visible, 8+ = red
       if (state.heatmapVisible && data.positions) {
         const heatPoints = data.positions.map(function (v) {
-          return [v.X, v.Y, 0.03];
+          return [v.X, v.Y, 0.12];
         });
         state.heatmapLayer.setLatLngs(heatPoints);
       }

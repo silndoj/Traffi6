@@ -375,11 +375,10 @@ class TrafficSimulation:
         return lights
 
     def enable_green_wave(self, corridors):
-        """Synchronize traffic light phases along green-wave corridors.
+        """Synchronize ALL traffic lights near corridor lines, not just sensor nodes.
 
-        For each corridor, the first intersection's light sets the base phase.
-        Subsequent lights are offset by the travel time between them, so a
-        vehicle hitting the first green will hit all subsequent greens.
+        For each corridor, find every traffic light within 300m of the corridor
+        line and sync its phase based on distance along the corridor.
         """
         self._green_wave_active = True
         self._original_offsets = {}
@@ -389,26 +388,46 @@ class TrafficSimulation:
             if len(sensors) < 2:
                 continue
 
-            # Find the traffic light node closest to each sensor
-            for i, sensor in enumerate(sensors):
-                slat, slon = sensor["lat"], sensor["lon"]
-                best_node = None
-                best_dist = float("inf")
-                for nid, tl in self._traffic_lights.items():
-                    d = abs(tl["lat"] - slat) + abs(tl["lon"] - slon)
-                    if d < best_dist:
-                        best_dist = d
-                        best_node = nid
+            # Build corridor line as sequence of (lat, lon) points
+            corridor_points = [(s["lat"], s["lon"]) for s in sensors]
+            corridor_speed = 30 / 3.6  # 30 km/h in m/s
 
-                if best_node and best_dist < 0.002:
-                    # Save original offset for restore
-                    if best_node not in self._original_offsets:
-                        self._original_offsets[best_node] = self._traffic_lights[best_node]["phase_offset"]
+            # For every traffic light, check distance to corridor line
+            for nid, tl in self._traffic_lights.items():
+                if nid in self._original_offsets:
+                    continue  # already synced by another corridor
 
-                    # Set synchronized offset: base phase + travel time offset
-                    # All corridor lights share same base phase so green cascades
-                    base_phase = 0.0
-                    self._traffic_lights[best_node]["phase_offset"] = base_phase + sensor["offset_sec"]
+                tlat, tlon = tl["lat"], tl["lon"]
+
+                # Find closest point on corridor and distance along it
+                min_perp_dist = float("inf")
+                dist_along = 0.0
+                cumulative_dist = 0.0
+
+                for i in range(len(corridor_points) - 1):
+                    ax, ay = corridor_points[i]
+                    bx, by = corridor_points[i + 1]
+                    seg_len = _latlon_distance_m(ax, ay, bx, by)
+
+                    # Project point onto segment
+                    if seg_len > 0:
+                        dx, dy = bx - ax, by - ay
+                        t = max(0, min(1, ((tlat - ax) * dx + (tlon - ay) * dy) / (dx * dx + dy * dy)))
+                        px, py = ax + t * dx, ay + t * dy
+                        perp_dist = _latlon_distance_m(tlat, tlon, px, py)
+
+                        if perp_dist < min_perp_dist:
+                            min_perp_dist = perp_dist
+                            dist_along = cumulative_dist + t * seg_len
+
+                    cumulative_dist += seg_len
+
+                # Sync if within 300m of corridor line
+                if min_perp_dist < 300:
+                    self._original_offsets[nid] = tl["phase_offset"]
+                    # Phase = travel time to reach this point along corridor
+                    travel_time = dist_along / corridor_speed
+                    tl["phase_offset"] = travel_time
 
         synced = len(self._original_offsets)
         print(f"[sim] Green wave enabled: {synced} lights synchronized across {len(corridors)} corridors")
