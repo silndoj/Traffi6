@@ -892,7 +892,8 @@ function toggleCorridors() {
       ];
 
       state.corridorData.forEach(function (corridor, idx) {
-        var coords = corridor.sensors.map(function (s) {
+        // Use road path if available, otherwise fall back to sensor positions
+        var coords = (corridor.path || corridor.sensors).map(function (s) {
           return [s.lat, s.lon];
         });
         if (coords.length < 2) return;

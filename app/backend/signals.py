@@ -254,88 +254,119 @@ def model_signal_recommendations(analysis):
     return recommendations
 
 
+def _bfs_path(road_network, start, end, max_hops=12):
+    """Find shortest path on road graph using BFS."""
+    if start == end:
+        return [start]
+    visited = {start}
+    queue = [(start, [start])]
+    while queue:
+        node, path = queue.pop(0)
+        if len(path) > max_hops:
+            continue
+        for neighbor in road_network.neighbors_of(node):
+            if neighbor == end:
+                return path + [neighbor]
+            if neighbor not in visited:
+                visited.add(neighbor)
+                queue.append((neighbor, path + [neighbor]))
+    return None
+
+
 def model_green_wave_corridors(pairs, sensor_positions):
-    """MODELED timing, REAL topology.
+    """Green-wave corridors that follow ACTUAL ROADS, not straight lines.
 
-    Groups coordination pairs into chains and computes signal offsets
-    assuming 30 km/h average city driving speed.
+    Uses the road network graph to find real paths between high-traffic
+    sensor pairs. Corridors return every road node coordinate along the
+    path so the frontend draws them on actual streets.
     """
-    adjacency = {}
-    for p in pairs:
-        a, b = p["sensor_a"], p["sensor_b"]
-        adjacency.setdefault(a, set()).add(b)
-        adjacency.setdefault(b, set()).add(a)
+    from simulation import RoadNetwork
 
-    pair_lookup = {}
-    for p in pairs:
-        pair_lookup[(p["sensor_a"], p["sensor_b"])] = p
-        pair_lookup[(p["sensor_b"], p["sensor_a"])] = p
-
-    visited = set()
-    corridors = []
+    rn = RoadNetwork()
     speed_ms = 30 / 3.6
 
-    for start in adjacency:
-        if start in visited:
-            continue
+    # Map sensors to nearest road nodes
+    sensor_nodes = {}
+    for sid, (lat, lon) in sensor_positions.items():
+        sensor_nodes[sid] = rn.nearest_node(lat, lon)
 
-        chain = [start]
-        visited.add(start)
-        current = start
+    # Get analysis for volume data
+    analysis = compute_intersection_analysis()
 
-        while True:
-            neighbors = adjacency.get(current, set()) - visited
-            if not neighbors:
-                break
-            nxt = max(neighbors, key=lambda n: pair_lookup.get(
-                (current, n), {"combined_volume": 0}
-            )["combined_volume"])
-            chain.append(nxt)
-            visited.add(nxt)
-            current = nxt
+    # Find all high-traffic sensor pairs connected by road
+    sids = sorted(
+        [s for s in sensor_positions if s in analysis],
+        key=lambda s: -analysis[s]["total_volume"],
+    )[:25]  # top 25 busiest sensors
 
-        if len(chain) < 2:
-            continue
-
-        sensors_out = []
-        total_length = 0.0
-        cumulative_offset = 0.0
-
-        for idx, sid in enumerate(chain):
-            if sid not in sensor_positions:
+    road_pairs = []
+    for i in range(len(sids)):
+        for j in range(i + 1, len(sids)):
+            a, b = sids[i], sids[j]
+            if a not in sensor_nodes or b not in sensor_nodes:
                 continue
-            lat, lon = sensor_positions[sid]
+            path = _bfs_path(rn, sensor_nodes[a], sensor_nodes[b], max_hops=10)
+            if path is None:
+                continue
+            road_dist = sum(
+                rn.edge_length_m(path[k], path[k + 1]) for k in range(len(path) - 1)
+            )
+            if road_dist < 1200:
+                vol = analysis[a]["total_volume"] + analysis[b]["total_volume"]
+                road_pairs.append((a, b, path, road_dist, vol))
 
-            if idx > 0:
-                prev_sid = chain[idx - 1]
-                if prev_sid in sensor_positions:
-                    plat, plon = sensor_positions[prev_sid]
-                    seg_dist = _haversine(plat, plon, lat, lon)
-                    total_length += seg_dist
-                    cumulative_offset += seg_dist / speed_ms
+    road_pairs.sort(key=lambda x: -x[4])
 
-            sensors_out.append({
-                "sensor_id": sid,
-                "lat": lat,
-                "lon": lon,
-                "offset_sec": round(cumulative_offset, 1),
+    # Build corridors from top pairs, avoiding reuse of sensors
+    used_sensors = set()
+    corridors = []
+
+    for sid_a, sid_b, path, road_dist, vol in road_pairs:
+        if sid_a in used_sensors or sid_b in used_sensors:
+            continue
+
+        used_sensors.add(sid_a)
+        used_sensors.add(sid_b)
+
+        # Convert road path nodes to lat/lon coordinates
+        path_coords = []
+        cumulative_dist = 0.0
+        for k, nid in enumerate(path):
+            lat, lon = rn.position_of(nid)
+            if k > 0:
+                cumulative_dist += rn.edge_length_m(path[k - 1], nid)
+            path_coords.append({
+                "lat": round(lat, 6),
+                "lon": round(lon, 6),
+                "offset_sec": round(cumulative_dist / speed_ms, 1),
             })
-
-        combined_vol = sum(
-            pair_lookup.get((chain[i], chain[i + 1]), {"combined_volume": 0})[
-                "combined_volume"
-            ]
-            for i in range(len(chain) - 1)
-        )
 
         corridors.append({
             "corridor_id": f"corridor_{len(corridors) + 1}",
-            "sensors": sensors_out,
-            "total_length_m": round(total_length, 1),
-            "travel_time_sec": round(total_length / speed_ms, 1),
-            "combined_volume": combined_vol,
-            "model_basis": "Assumed 30km/h city driving",
+            "sensors": [
+                {
+                    "sensor_id": sid_a,
+                    "lat": sensor_positions[sid_a][0],
+                    "lon": sensor_positions[sid_a][1],
+                    "offset_sec": 0.0,
+                },
+                {
+                    "sensor_id": sid_b,
+                    "lat": sensor_positions[sid_b][0],
+                    "lon": sensor_positions[sid_b][1],
+                    "offset_sec": round(road_dist / speed_ms, 1),
+                },
+            ],
+            "path": path_coords,
+            "total_length_m": round(road_dist, 1),
+            "travel_time_sec": round(road_dist / speed_ms, 1),
+            "combined_volume": vol,
+            "hops": len(path) - 1,
+            "model_basis": "Road-network path at 30km/h",
         })
 
-    corridors.sort(key=lambda c: c["combined_volume"], reverse=True)
+        if len(corridors) >= 8:
+            break
+
+    corridors.sort(key=lambda c: -c["combined_volume"])
     return corridors
