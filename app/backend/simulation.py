@@ -348,14 +348,16 @@ class TrafficSimulation:
         print(f"[sim] Traffic lights: {len(self._traffic_lights)} intersections")
 
     def get_traffic_light_states(self):
-        """Return current state of all traffic lights."""
+        """Return current state of traffic lights within visible map bounds."""
         lights = []
         for nid, tl in self._traffic_lights.items():
-            # Calculate phase within cycle
+            # Skip lights outside visible area
+            if abs(tl["lat"] - CENTER_LAT) > 0.035 or abs(tl["lon"] - CENTER_LON) > 0.05:
+                continue
+
             t = (self._sim_time + tl["phase_offset"]) % tl["cycle_sec"]
             green_duration = tl["cycle_sec"] * 0.45
             yellow_duration = 3.0
-            red_duration = tl["cycle_sec"] - green_duration - yellow_duration
 
             if t < green_duration:
                 state = "green"
