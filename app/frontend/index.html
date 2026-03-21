@@ -9,6 +9,20 @@
 </head>
 <body>
 
+  <div id="loading-overlay">
+    <div class="loading-content">
+      <div class="loading-logo">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 6v6l4 2"/>
+        </svg>
+      </div>
+      <h2 class="loading-title">KI Kommune 2024</h2>
+      <p class="loading-subtitle">Verkehrsnetz wird geladen...</p>
+      <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+    </div>
+  </div>
+
   <div id="sidebar">
     <div class="sidebar-header">
       <div class="logo">
@@ -20,6 +34,14 @@
       </div>
       <p class="subtitle">Verkehr in Echtzeit — Karlsruhe</p>
     </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="live">Live</button>
+      <button class="tab-btn" data-tab="analyse">Analyse</button>
+      <button class="tab-btn" data-tab="mobil">Mobil</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-live">
 
     <div class="timestamp-card">
       <span class="label">Aktuelle Zeit</span>
@@ -67,58 +89,6 @@
       </div>
     </div>
 
-    <div class="intelligence-section">
-      <div class="section-label">VERKEHRSINTELLIGENZ</div>
-
-      <button id="btn-heatmap" class="toggle-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-          <circle cx="12" cy="12" r="4"/>
-        </svg>
-        Heatmap
-      </button>
-
-      <!-- Signal Intelligence Toggles -->
-      <div class="toggle-group">
-        <button id="btn-analysis" class="toggle-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          Analyse
-        </button>
-        <button id="btn-corridors" class="toggle-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          Grüne Welle
-        </button>
-      </div>
-
-      <!-- City Summary -->
-      <div id="city-summary" class="summary-card">
-        <div class="section-label">VERKEHRSINTELLIGENZ</div>
-        <div id="summary-content">Lade Analyse...</div>
-      </div>
-
-      <!-- Signal Recommendations -->
-      <div id="signal-recommendations" class="recs-section" style="display:none;">
-        <div class="section-label">EMPFEHLUNGEN</div>
-        <div id="recs-list"></div>
-        <div class="model-disclaimer">Basiert auf angenommenem 90s/50% Basiswert</div>
-      </div>
-
-      <div id="peak-hours" class="peak-section">
-        <div class="section-label">STOSSZEITEN</div>
-      </div>
-
-      <div id="alerts" class="alerts-section">
-        <div class="section-label">WARNUNGEN</div>
-        <div id="alert-list"></div>
-      </div>
-
-      <div class="qr-section">
-        <div class="section-label">MOBIL ZUGANG</div>
-        <div id="qr-code"></div>
-        <div class="qr-label">Scannen für Live-Verkehr</div>
-      </div>
-    </div>
-
     <div class="totals-section">
       <div class="total-card">
         <span class="total-label">Gesamt</span>
@@ -134,6 +104,64 @@
       <span class="status-dot" id="ws-status-dot"></span>
       <span id="ws-status-text">Verbinde...</span>
     </div>
+
+    </div><!-- /tab-live -->
+
+    <div class="tab-panel" id="tab-analyse">
+      <div class="intelligence-section">
+        <div class="section-label">VERKEHRSINTELLIGENZ</div>
+
+        <button id="btn-heatmap" class="toggle-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+            <circle cx="12" cy="12" r="4"/>
+          </svg>
+          Heatmap
+        </button>
+
+        <!-- Signal Intelligence Toggles -->
+        <div class="toggle-group">
+          <button id="btn-analysis" class="toggle-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            Analyse
+          </button>
+          <button id="btn-corridors" class="toggle-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            Grüne Welle
+          </button>
+        </div>
+
+        <!-- City Summary -->
+        <div id="city-summary" class="summary-card">
+          <div class="section-label">VERKEHRSINTELLIGENZ</div>
+          <div id="summary-content">Lade Analyse...</div>
+        </div>
+
+        <!-- Signal Recommendations -->
+        <div id="signal-recommendations" class="recs-section" style="display:none;">
+          <div class="section-label">EMPFEHLUNGEN</div>
+          <div id="recs-list"></div>
+          <div class="model-disclaimer">Basiert auf angenommenem 90s/50% Basiswert</div>
+        </div>
+
+        <div id="peak-hours" class="peak-section">
+          <div class="section-label">STOSSZEITEN</div>
+        </div>
+
+        <div id="alerts" class="alerts-section">
+          <div class="section-label">WARNUNGEN</div>
+          <div id="alert-list"></div>
+        </div>
+      </div>
+    </div><!-- /tab-analyse -->
+
+    <div class="tab-panel" id="tab-mobil">
+      <div class="qr-section">
+        <div class="section-label">MOBIL ZUGANG</div>
+        <div id="qr-code"></div>
+        <div class="qr-label">Scannen für Live-Verkehr</div>
+      </div>
+    </div><!-- /tab-mobil -->
   </div>
 
   <div id="map"></div>

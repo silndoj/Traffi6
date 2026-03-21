@@ -278,6 +278,27 @@ function updateMarkers(vehicles) {
   }
 }
 
+// ── Animated Counter ────────────────────────────────────────────────────────
+
+function animateCount(element, targetValue) {
+  const current = parseInt(element.textContent.replace(/\D/g, "")) || 0;
+  const target = targetValue;
+  if (current === target) return;
+
+  const duration = 300;
+  const start = performance.now();
+
+  function step(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    const value = Math.round(current + (target - current) * eased);
+    element.textContent = formatNumber(value);
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
 // ── Dashboard Updates ───────────────────────────────────────────────────────
 
 function updateCounts(vehicles) {
@@ -292,10 +313,10 @@ function updateCounts(vehicles) {
   let total = 0;
   for (const type of VEHICLE_TYPES) {
     const el = document.getElementById(`count-${type}`);
-    if (el) el.textContent = formatNumber(counts[type]);
+    if (el) animateCount(el, counts[type]);
     total += counts[type];
   }
-  dom.totalVehicles.textContent = formatNumber(total);
+  animateCount(dom.totalVehicles, total);
 }
 
 function updateTimeline(currentStep, totalSteps) {
@@ -327,6 +348,12 @@ function connectWebSocket() {
     dom.wsStatusDot.classList.add("connected");
     dom.wsStatusText.textContent = "Verbunden";
     state.reconnectDelay = 1000;
+
+    // Fade out loading overlay after brief delay
+    setTimeout(() => {
+      const overlay = document.getElementById("loading-overlay");
+      if (overlay) overlay.classList.add("hidden");
+    }, 500);
 
     // Send current speed setting
     state.ws.send(JSON.stringify({ speed: state.speed }));
@@ -440,15 +467,17 @@ async function fetchSensors() {
       const lat = sensor.lat || sensor.X;
       const lon = sensor.lon || sensor.Y;
       if (lat && lon) {
-        const circle = L.circleMarker([lat, lon], {
-          radius: 4,
-          color: "#3b82f6",
-          fillColor: "#3b82f6",
-          fillOpacity: 0.4,
-          weight: 1,
+        const pulseIcon = L.divIcon({
+          className: "sensor-pulse",
+          iconSize: [12, 12],
+          iconAnchor: [6, 6],
+          html: '<div class="pulse-dot"></div><div class="pulse-ring"></div>',
+        });
+        const marker = L.marker([lat, lon], {
+          icon: pulseIcon,
           interactive: false,
         }).addTo(state.map);
-        state.sensorMarkers.push(circle);
+        state.sensorMarkers.push(marker);
       }
     }
   } catch (e) {
@@ -768,6 +797,20 @@ document.addEventListener("DOMContentLoaded", () => {
   initHeatmap();
   initControls();
   connectWebSocket();
+
+  // Tab switching
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document
+        .querySelectorAll(".tab-btn")
+        .forEach((b) => b.classList.remove("active"));
+      document
+        .querySelectorAll(".tab-panel")
+        .forEach((p) => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+    });
+  });
 
   // Fetch initial data from REST endpoints
   fetchStats();
