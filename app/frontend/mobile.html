@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="KA Verkehr">
+  <meta name="apple-mobile-web-app-title" content="KA Traffic">
   <meta name="theme-color" content="#0f1117">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>Karlsruhe Verkehr</title>
+  <title>Karlsruhe Traffic</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -270,7 +270,7 @@
 
 <div class="card" id="card">
   <div class="card-header">
-    <span class="card-title">Karlsruhe Verkehr</span>
+    <span class="card-title">Karlsruhe Traffic</span>
     <span class="card-time" id="current-time">--:--</span>
   </div>
 
@@ -283,29 +283,29 @@
     </div>
     <div class="status-text">
       <div class="status-label" id="status-label">--</div>
-      <div class="status-subtitle">Verkehrslage</div>
+      <div class="status-subtitle">Traffic Status</div>
     </div>
   </div>
 
   <div class="stats-row">
     <div class="stat-box">
       <div class="stat-value" id="stat-vehicles">--</div>
-      <div class="stat-label">Fahrzeuge</div>
+      <div class="stat-label">Vehicles</div>
     </div>
     <div class="stat-box">
       <div class="stat-value" id="stat-sensors">--</div>
-      <div class="stat-label">Sensoren</div>
+      <div class="stat-label">Sensors</div>
     </div>
     <div class="stat-box">
       <div class="stat-value" id="stat-alerts">--</div>
-      <div class="stat-label">Warnungen</div>
+      <div class="stat-label">Alerts</div>
     </div>
   </div>
 
   <div class="anomalies-section" id="anomalies-section">
-    <div class="anomalies-title">Aktive Warnungen</div>
+    <div class="anomalies-title">Active Alerts</div>
     <div class="anomaly-list" id="anomaly-list">
-      <div class="no-anomalies">Keine Warnungen</div>
+      <div class="no-anomalies">No alerts</div>
     </div>
   </div>
 
@@ -357,7 +357,7 @@
     if (!anomalies || anomalies.length === 0) {
       const empty = document.createElement("div");
       empty.className = "no-anomalies";
-      empty.textContent = "Keine Warnungen";
+      empty.textContent = "No alerts";
       list.appendChild(empty);
       return;
     }
@@ -420,7 +420,7 @@
     const label = $id("refresh-label");
 
     dot.classList.add("loading");
-    label.textContent = "Laden\u2026";
+    label.textContent = "Loading\u2026";
 
     try {
       const res = await fetch("/api/traffic-status");

@@ -122,16 +122,19 @@ except Exception:
 
 timestamps = database.get_timestamps()
 
-# Find first timestamp with meaningful traffic (skip sparse late-night data)
+# Find first daytime timestamp with traffic (skip night — demo should show busy city)
 _start_index = 0
 for _i, _ts in enumerate(timestamps):
+    hour_str = _ts[11:13] if len(_ts) > 13 else ""
+    hour = int(hour_str) if hour_str.isdigit() else -1
+    if hour < 7 or hour > 20:
+        continue
     _readings = database.get_readings_at(_ts)
     _total = sum(sum(c for _, c in v) for v in _readings.values())
-    if _total >= 80:
+    if _total >= 50:
         _start_index = _i
-        # Pre-seed the simulation with this data so vehicles exist immediately
         sim.update_from_data(_readings)
-        for _ in range(5):
+        for _ in range(10):
             sim.tick(0.5)
         print(f"[server] Starting at index {_i} ({_ts}) with {_total} vehicles")
         break
@@ -303,11 +306,9 @@ async def ws_traffic(ws: WebSocket):
             sim.tick(0.1)
             positions = sim.get_positions()
 
-            # Compute heatmap and anomalies for this timestamp
-            heatmap = compute_congestion_grid(readings, sensor_positions)
-            anomalies = detect_anomalies(readings, sensor_stats)
+            # Anomalies only recomputed on data-feed ticks (not every frame)
+            anomalies = detect_anomalies(readings, sensor_stats) if tick_count % TICKS_PER_TIMESTAMP == 0 else []
 
-            # Update module-level step for REST endpoint
             global _current_ws_step
             _current_ws_step = ts_index
 
@@ -316,8 +317,6 @@ async def ws_traffic(ws: WebSocket):
                 "timestamp": timestamps[ts_index],
                 "step": ts_index,
                 "total_steps": len(timestamps),
-                "tick": tick_count,
-                "heatmap": heatmap,
                 "anomalies": anomalies,
             })
 
