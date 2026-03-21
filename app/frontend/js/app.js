@@ -134,14 +134,15 @@ function initMap() {
 
 function initHeatmap() {
   state.heatmapLayer = L.heatLayer([], {
-    radius: 30,
-    blur: 20,
-    maxZoom: 17,
+    radius: 50,
+    blur: 35,
+    maxZoom: 20,
+    minOpacity: 0.25,
     gradient: {
-      0.2: "#3b82f6",
-      0.4: "#22c55e",
-      0.6: "#f59e0b",
-      0.8: "#ef4444",
+      0.1: "#3b82f6",
+      0.3: "#22c55e",
+      0.5: "#f59e0b",
+      0.7: "#ef4444",
       1.0: "#dc2626",
     },
   });
@@ -379,9 +380,12 @@ function connectWebSocket() {
         updateTimeline(data.step, data.total_steps);
       }
 
-      // Heatmap data from WebSocket
-      if (data.heatmap && state.heatmapVisible) {
-        state.heatmapLayer.setLatLngs(data.heatmap);
+      // Heatmap: use vehicle positions as heat points (750 dense points)
+      if (state.heatmapVisible && data.positions) {
+        const heatPoints = data.positions.map(function (v) {
+          return [v.X, v.Y, 0.5];
+        });
+        state.heatmapLayer.setLatLngs(heatPoints);
       }
 
       // Anomaly alerts from WebSocket
