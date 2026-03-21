@@ -78,6 +78,31 @@
         Heatmap
       </button>
 
+      <!-- Signal Intelligence Toggles -->
+      <div class="toggle-group">
+        <button id="btn-analysis" class="toggle-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          Analyse
+        </button>
+        <button id="btn-corridors" class="toggle-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          Grüne Welle
+        </button>
+      </div>
+
+      <!-- City Summary -->
+      <div id="city-summary" class="summary-card">
+        <div class="section-label">VERKEHRSINTELLIGENZ</div>
+        <div id="summary-content">Lade Analyse...</div>
+      </div>
+
+      <!-- Signal Recommendations -->
+      <div id="signal-recommendations" class="recs-section" style="display:none;">
+        <div class="section-label">EMPFEHLUNGEN</div>
+        <div id="recs-list"></div>
+        <div class="model-disclaimer">Basiert auf angenommenem 90s/50% Basiswert</div>
+      </div>
+
       <div id="peak-hours" class="peak-section">
         <div class="section-label">STOSSZEITEN</div>
       </div>

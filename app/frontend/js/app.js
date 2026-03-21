@@ -12,6 +12,12 @@ const state = {
   counts: { car: 0, truck: 0, motor_bike: 0, bicycle: 0, foot: 0 },
   heatmapLayer: null,
   heatmapVisible: false,
+  analysisLayer: null,
+  analysisVisible: false,
+  corridorLayer: null,
+  corridorsVisible: false,
+  signalData: null,
+  corridorData: null,
 };
 
 const VEHICLE_TYPES = ["car", "truck", "motor_bike", "bicycle", "foot"];
@@ -483,6 +489,278 @@ function initControls() {
   });
 }
 
+// ── Signal Analysis ──────────────────────────────────────────────────────────
+
+async function fetchSignalAnalysis() {
+  try {
+    const [signalRes, corridorRes, summaryRes] = await Promise.all([
+      fetch("/api/signals"),
+      fetch("/api/corridors"),
+      fetch("/api/city-summary"),
+    ]);
+
+    state.signalData = await signalRes.json();
+    state.corridorData = await corridorRes.json();
+    var summary = await summaryRes.json();
+
+    renderCitySummary(summary);
+  } catch (e) {
+    console.error("Signal fetch failed:", e);
+  }
+}
+
+function renderCitySummary(s) {
+  var container = document.getElementById("summary-content");
+  container.textContent = "";
+  var grid = document.createElement("div");
+  grid.className = "summary-grid";
+
+  var stats = [
+    [s.total_sensors, "Sensoren"],
+    [formatNumber(s.total_readings), "Messungen"],
+    [s.pct_needs_adaptive + "%", "brauchen Anpassung"],
+    [s.coordination_pairs, "Koordinationspaare"],
+    [s.peak_hour, "Stoßzeit"],
+    [formatNumber(s.peak_hour_volume), "Fahrzeuge/Stoßzeit"],
+  ];
+  stats.forEach(function (pair) {
+    var stat = document.createElement("div");
+    stat.className = "summary-stat";
+    var val = document.createElement("span");
+    val.className = "summary-value";
+    val.textContent = pair[0];
+    var lbl = document.createElement("span");
+    lbl.className = "summary-label";
+    lbl.textContent = pair[1];
+    stat.appendChild(val);
+    stat.appendChild(lbl);
+    grid.appendChild(stat);
+  });
+  container.appendChild(grid);
+}
+
+function buildSparkBars(hourly) {
+  var maxH = Math.max.apply(null, hourly.concat([1]));
+  var container = document.createElement("div");
+  container.style.cssText =
+    "display:flex;align-items:flex-end;gap:1px;height:35px;margin-top:4px;";
+  hourly.forEach(function (v, i) {
+    var h = Math.max(1, (v / maxH) * 30);
+    var isRush = i >= 16 && i <= 18;
+    var bar = document.createElement("div");
+    bar.style.cssText =
+      "width:4px;height:" +
+      h +
+      "px;background:" +
+      (isRush ? "#ef4444" : "#3b82f6") +
+      ";border-radius:1px;";
+    container.appendChild(bar);
+  });
+  return container;
+}
+
+function buildPopupContent(sid, data) {
+  var cv = data.cv || 0;
+  var wrap = document.createElement("div");
+  wrap.style.cssText = "font-family:system-ui;min-width:220px;";
+
+  var title = document.createElement("div");
+  title.style.cssText = "font-weight:600;margin-bottom:4px;";
+  title.textContent = "Sensor " + sid.slice(0, 12) + "...";
+  wrap.appendChild(title);
+
+  var badge = document.createElement("span");
+  badge.style.cssText =
+    "color:white;padding:2px 6px;border-radius:4px;font-size:10px;background:" +
+    (data.needs_adaptive ? "#ef4444" : "#22c55e") +
+    ";";
+  badge.textContent = data.needs_adaptive ? "Adaptiv nötig" : "Stabil";
+  wrap.appendChild(badge);
+
+  var detail = document.createElement("div");
+  detail.style.cssText = "margin-top:8px;font-size:11px;color:#666;";
+  detail.textContent =
+    "Variabilität: " + cv.toFixed(2) + " | Stoßzeit: " + data.peak_hour + ":00";
+  wrap.appendChild(detail);
+
+  var label = document.createElement("div");
+  label.style.cssText = "margin-top:8px;font-size:10px;color:#888;";
+  label.textContent = "Stündliches Profil (rot = Stoßzeit)";
+  wrap.appendChild(label);
+
+  var hourly = data.hourly_profile || [];
+  wrap.appendChild(buildSparkBars(hourly));
+
+  return wrap;
+}
+
+function toggleAnalysis() {
+  state.analysisVisible = !state.analysisVisible;
+  document.getElementById("btn-analysis").classList.toggle("active");
+
+  if (state.analysisVisible && state.signalData) {
+    if (!state.analysisLayer) {
+      state.analysisLayer = L.layerGroup();
+      for (var sid in state.signalData) {
+        if (!state.signalData.hasOwnProperty(sid)) continue;
+        var data = state.signalData[sid];
+        if (!data.lat || !data.lon) continue;
+        var cv = data.cv || 0;
+        var color = cv > 1.0 ? "#ef4444" : cv > 0.7 ? "#f59e0b" : "#22c55e";
+        var radius = Math.max(6, Math.min(20, (data.daily_avg || 1) / 5));
+
+        var circle = L.circleMarker([data.lat, data.lon], {
+          radius: radius,
+          color: color,
+          fillColor: color,
+          fillOpacity: 0.6,
+          weight: 2,
+        });
+
+        circle.bindPopup(buildPopupContent(sid, data), { maxWidth: 280 });
+        state.analysisLayer.addLayer(circle);
+      }
+    }
+    state.analysisLayer.addTo(state.map);
+    document.getElementById("signal-recommendations").style.display = "block";
+    renderRecommendations();
+  } else {
+    if (state.analysisLayer) state.map.removeLayer(state.analysisLayer);
+    document.getElementById("signal-recommendations").style.display = "none";
+  }
+}
+
+function renderRecommendations() {
+  if (!state.signalData) return;
+  var entries = Object.entries(state.signalData)
+    .filter(function (e) {
+      return e[1].needs_adaptive;
+    })
+    .sort(function (a, b) {
+      return (b[1].cv || 0) - (a[1].cv || 0);
+    })
+    .slice(0, 5);
+
+  var container = document.getElementById("recs-list");
+  container.textContent = "";
+  entries.forEach(function (entry) {
+    var sid = entry[0];
+    var d = entry[1];
+    var improvement = Math.min(30, Math.round((d.cv || 0) * 15));
+
+    var card = document.createElement("div");
+    card.className = "rec-card";
+
+    var badgeEl = document.createElement("div");
+    badgeEl.className = "rec-badge";
+    badgeEl.textContent = "PROTOTYP";
+    card.appendChild(badgeEl);
+
+    var sensor = document.createElement("div");
+    sensor.className = "rec-sensor";
+    sensor.textContent = "Sensor " + sid.slice(0, 8) + "...";
+    card.appendChild(sensor);
+
+    var detail = document.createElement("div");
+    detail.className = "rec-detail";
+    detail.textContent =
+      "CV: " + (d.cv || 0).toFixed(2) + " | Stoßzeit: " + d.peak_hour + ":00";
+    card.appendChild(detail);
+
+    var suggestion = document.createElement("div");
+    suggestion.className = "rec-suggestion";
+    suggestion.textContent = "Modellierte Verbesserung: ~" + improvement + "%";
+    card.appendChild(suggestion);
+
+    container.appendChild(card);
+  });
+}
+
+function buildCorridorPopup(corridor, idx) {
+  var wrap = document.createElement("div");
+  wrap.style.cssText = "font-family:system-ui;";
+
+  var title = document.createElement("div");
+  title.style.fontWeight = "600";
+  title.textContent = "Grüne Welle #" + (idx + 1);
+  wrap.appendChild(title);
+
+  var info = document.createElement("div");
+  info.style.cssText = "font-size:11px;margin-top:4px;";
+  info.textContent =
+    corridor.sensors.length +
+    " Kreuzungen | " +
+    corridor.total_length_m.toFixed(0) +
+    "m";
+  wrap.appendChild(info);
+
+  var travel = document.createElement("div");
+  travel.style.fontSize = "11px";
+  travel.textContent =
+    "Reisezeit: " + corridor.travel_time_sec.toFixed(1) + "s bei 30 km/h";
+  wrap.appendChild(travel);
+
+  var offsets = corridor.sensors
+    .map(function (s) {
+      return s.offset_sec.toFixed(1) + "s";
+    })
+    .join(" \u2192 ");
+  var offsetEl = document.createElement("div");
+  offsetEl.style.cssText = "font-size:10px;color:#888;margin-top:4px;";
+  offsetEl.textContent = "Zeitversatz: " + offsets;
+  wrap.appendChild(offsetEl);
+
+  var disclaimer = document.createElement("div");
+  disclaimer.style.cssText =
+    "font-size:9px;color:#aaa;margin-top:4px;font-style:italic;";
+  disclaimer.textContent = "Modelliert \u2014 basiert auf 30 km/h Annahme";
+  wrap.appendChild(disclaimer);
+
+  return wrap;
+}
+
+function toggleCorridors() {
+  state.corridorsVisible = !state.corridorsVisible;
+  document.getElementById("btn-corridors").classList.toggle("active");
+
+  if (state.corridorsVisible && state.corridorData) {
+    if (!state.corridorLayer) {
+      state.corridorLayer = L.layerGroup();
+      var colors = [
+        "#3b82f6",
+        "#22c55e",
+        "#f59e0b",
+        "#a855f7",
+        "#ef4444",
+        "#06b6d4",
+        "#ec4899",
+        "#84cc16",
+      ];
+
+      state.corridorData.forEach(function (corridor, idx) {
+        var coords = corridor.sensors.map(function (s) {
+          return [s.lat, s.lon];
+        });
+        if (coords.length < 2) return;
+
+        var color = colors[idx % colors.length];
+        var line = L.polyline(coords, {
+          color: color,
+          weight: 4,
+          opacity: 0.8,
+          dashArray: "10 8",
+        });
+
+        line.bindPopup(buildCorridorPopup(corridor, idx), { maxWidth: 300 });
+        state.corridorLayer.addLayer(line);
+      });
+    }
+    state.corridorLayer.addTo(state.map);
+  } else {
+    if (state.corridorLayer) state.map.removeLayer(state.corridorLayer);
+  }
+}
+
 // ── Init ────────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -497,4 +775,13 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchSensors();
   fetchIntelligence();
   generateQR();
+
+  // Signal intelligence
+  document
+    .getElementById("btn-analysis")
+    .addEventListener("click", toggleAnalysis);
+  document
+    .getElementById("btn-corridors")
+    .addEventListener("click", toggleCorridors);
+  fetchSignalAnalysis();
 });

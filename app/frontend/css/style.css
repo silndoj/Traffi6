@@ -540,6 +540,90 @@ body {
   border-radius: 8px;
 }
 
+/* ── Signal Intelligence ───────────────────── */
+
+.toggle-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.summary-stat {
+  text-align: center;
+}
+.summary-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  font-feature-settings: "tnum";
+}
+.summary-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.recs-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rec-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  position: relative;
+}
+.rec-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--color-motor_bike);
+  background: rgba(245, 158, 11, 0.15);
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.rec-sensor {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.rec-detail {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.rec-suggestion {
+  font-size: 11px;
+  color: var(--color-bicycle);
+  margin-top: 4px;
+  font-weight: 500;
+}
+.model-disclaimer {
+  font-size: 9px;
+  color: var(--text-secondary);
+  font-style: italic;
+  padding-top: 4px;
+}
+
 /* ── Scrollbar ──────────────────────────────── */
 
 #sidebar::-webkit-scrollbar {
