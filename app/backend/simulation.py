@@ -117,7 +117,7 @@ class RoadNetwork:
                 max_dist = d
         for nid, d in dists.items():
             norm = d / max_dist if max_dist > 0 else 0
-            self._weights[nid] = 1.0 + 2.0 * (1.0 - norm)
+            self._weights[nid] = 1.0 + 0.5 * (1.0 - norm)  # flatter: 1.5 center, 1.0 edge
 
     def nearest_node(self, lat, lon):
         best_id = -1
@@ -380,6 +380,6 @@ class TrafficSimulation:
 
     def get_positions(self):
         return [
-            {"X": v.x, "Y": v.y, "TYPE": v.vehicle_type, "ID": v.id}
+            {"X": round(v.x, 6), "Y": round(v.y, 6), "TYPE": v.vehicle_type, "ID": v.id}
             for v in self._vehicles.values()
         ]

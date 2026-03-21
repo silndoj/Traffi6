@@ -83,7 +83,7 @@ def compute_sensor_stats() -> dict[str, dict]:
 def detect_anomalies(readings: dict, sensor_stats: dict) -> list[dict]:
     """Given current readings and pre-computed stats, find anomalies.
 
-    Anomaly = sensor count > mean + 2*stddev
+    Anomaly = sensor count > mean + 1.5*stddev
     Return [{sensor_id: str, count: int, mean: float, stddev: float,
              severity: float (how many stddevs above), type: 'high_traffic'}, ...]
     """
@@ -93,7 +93,7 @@ def detect_anomalies(readings: dict, sensor_stats: dict) -> list[dict]:
             continue
         stats = sensor_stats[sensor_id]
         count = sum(c for _, c in vehicles)
-        threshold = stats["mean"] + 2 * stats["stddev"]
+        threshold = stats["mean"] + 1.5 * stats["stddev"]
 
         if stats["stddev"] > 0 and count > threshold:
             severity = round((count - stats["mean"]) / stats["stddev"], 2)
