@@ -272,6 +272,7 @@ async def ws_traffic(ws: WebSocket):
     speed_multiplier = 1.0
     paused = False
     readings = {}
+    current_anomalies = []
 
     try:
         while True:
@@ -298,16 +299,19 @@ async def ws_traffic(ws: WebSocket):
                 await asyncio.sleep(1)
                 continue
 
-            # --- Feed real data every N ticks ----------------------------
-            if tick_count % TICKS_PER_TIMESTAMP == 0:
+            # --- Feed real data based on speed-adjusted tick rate ----------
+            # Speed controls how many timestamps pass per second, NOT fps
+            # At 1x: 1 timestamp per 2 seconds (20 ticks × 0.1s)
+            # At 10x: 10 timestamps per 2 seconds
+            effective_ticks = max(2, int(TICKS_PER_TIMESTAMP / speed_multiplier))
+
+            if tick_count % effective_ticks == 0:
                 readings = database.get_readings_at(timestamps[ts_index])
                 sim.update_from_data(readings)
+                current_anomalies = detect_anomalies(readings, sensor_stats)
 
-            sim.tick(0.1)
+            sim.tick(0.1 * speed_multiplier)
             positions = sim.get_positions()
-
-            # Anomalies only recomputed on data-feed ticks (not every frame)
-            anomalies = detect_anomalies(readings, sensor_stats) if tick_count % TICKS_PER_TIMESTAMP == 0 else []
 
             global _current_ws_step
             _current_ws_step = ts_index
@@ -317,15 +321,16 @@ async def ws_traffic(ws: WebSocket):
                 "timestamp": timestamps[ts_index],
                 "step": ts_index,
                 "total_steps": len(timestamps),
-                "anomalies": anomalies,
+                "anomalies": current_anomalies,
             })
 
             tick_count += 1
-            if tick_count >= TICKS_PER_TIMESTAMP:
+            if tick_count >= effective_ticks:
                 tick_count = 0
                 ts_index = (ts_index + 1) % len(timestamps)
 
-            await asyncio.sleep(DEFAULT_FRAME_INTERVAL / speed_multiplier)
+            # Always 10fps — speed is handled by faster timestamp advancement
+            await asyncio.sleep(DEFAULT_FRAME_INTERVAL)
 
     except WebSocketDisconnect:
         pass
