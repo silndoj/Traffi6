@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KA Verkehr">
+  <meta name="theme-color" content="#0f1117">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Karlsruhe Verkehr</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 380px;
+      background: linear-gradient(145deg, #1a1d27, #161920);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      padding: 28px 24px;
+      box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.4),
+        0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: #f1f5f9;
+      letter-spacing: -0.01em;
+    }
+
+    .card-time {
+      font-size: 13px;
+      color: #64748b;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .status-section {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 28px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 14px;
+    }
+
+    .status-dot-wrapper {
+      position: relative;
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+    }
+
+    .status-dot {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      transition: background-color 0.6s ease;
+    }
+
+    .status-dot-pulse {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      animation: pulse 2.5s ease-in-out infinite;
+      transition: background-color 0.6s ease;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.4; }
+      50% { transform: scale(1.35); opacity: 0; }
+    }
+
+    .status-text { flex: 1; }
+
+    .status-label {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      transition: color 0.6s ease;
+    }
+
+    .status-subtitle {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .stat-box {
+      text-align: center;
+      padding: 14px 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #f1f5f9;
+      font-variant-numeric: tabular-nums;
+      transition: color 0.3s ease;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 4px;
+    }
+
+    .anomalies-section { margin-bottom: 24px; }
+
+    .anomalies-title {
+      font-size: 12px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+
+    .anomaly-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+
+    .anomaly-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.15);
+      border-radius: 10px;
+      font-size: 13px;
+    }
+
+    .anomaly-item.severity-medium {
+      background: rgba(245, 158, 11, 0.08);
+      border-color: rgba(245, 158, 11, 0.15);
+    }
+
+    .anomaly-severity {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .anomaly-severity.high { background: #ef4444; }
+    .anomaly-severity.medium { background: #f59e0b; }
+
+    .anomaly-sensor {
+      flex: 1;
+      color: #cbd5e1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .anomaly-count {
+      font-weight: 600;
+      color: #94a3b8;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .no-anomalies {
+      text-align: center;
+      padding: 12px;
+      font-size: 13px;
+      color: #475569;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .branding {
+      font-size: 11px;
+      color: #475569;
+      font-weight: 500;
+    }
+
+    .refresh-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #475569;
+    }
+
+    .refresh-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      transition: opacity 0.3s ease;
+    }
+
+    .refresh-dot.loading {
+      animation: blink 0.6s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    .error-banner {
+      display: none;
+      text-align: center;
+      padding: 10px;
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: 10px;
+      font-size: 12px;
+      color: #f87171;
+      margin-bottom: 16px;
+    }
+
+    .error-banner.visible { display: block; }
+
+    .fade-update { animation: fadeIn 0.4s ease; }
+
+    @keyframes fadeIn {
+      from { opacity: 0.5; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="card" id="card">
+  <div class="card-header">
+    <span class="card-title">Karlsruhe Verkehr</span>
+    <span class="card-time" id="current-time">--:--</span>
+  </div>
+
+  <div class="error-banner" id="error-banner">Verbindung fehlgeschlagen</div>
+
+  <div class="status-section">
+    <div class="status-dot-wrapper">
+      <div class="status-dot" id="status-dot"></div>
+      <div class="status-dot-pulse" id="status-dot-pulse"></div>
+    </div>
+    <div class="status-text">
+      <div class="status-label" id="status-label">--</div>
+      <div class="status-subtitle">Verkehrslage</div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-value" id="stat-vehicles">--</div>
+      <div class="stat-label">Fahrzeuge</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="stat-sensors">--</div>
+      <div class="stat-label">Sensoren</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="stat-alerts">--</div>
+      <div class="stat-label">Warnungen</div>
+    </div>
+  </div>
+
+  <div class="anomalies-section" id="anomalies-section">
+    <div class="anomalies-title">Aktive Warnungen</div>
+    <div class="anomaly-list" id="anomaly-list">
+      <div class="no-anomalies">Keine Warnungen</div>
+    </div>
+  </div>
+
+  <div class="card-footer">
+    <span class="branding">KI Kommune 2024</span>
+    <div class="refresh-indicator">
+      <div class="refresh-dot" id="refresh-dot"></div>
+      <span id="refresh-label">Live</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const REFRESH_INTERVAL = 15000;
+  const LEVEL_LABELS = {
+    low: "Niedrig",
+    medium: "Mittel",
+    high: "Hoch",
+    critical: "Kritisch",
+  };
+
+  const $id = (id) => document.getElementById(id);
+
+  function updateClock() {
+    const now = new Date();
+    $id("current-time").textContent = now.toLocaleTimeString("de-DE", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  function setStatusColor(color) {
+    $id("status-dot").style.backgroundColor = color;
+    $id("status-dot-pulse").style.backgroundColor = color;
+    $id("status-label").style.color = color;
+  }
+
+  function sanitizeText(str) {
+    return String(str).replace(/[<>&"']/g, "");
+  }
+
+  function renderAnomalies(anomalies) {
+    const list = $id("anomaly-list");
+
+    while (list.firstChild) {
+      list.removeChild(list.firstChild);
+    }
+
+    if (!anomalies || anomalies.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "no-anomalies";
+      empty.textContent = "Keine Warnungen";
+      list.appendChild(empty);
+      return;
+    }
+
+    const sorted = [...anomalies].sort((a, b) => b.count - a.count);
+
+    for (const anomaly of sorted) {
+      const item = document.createElement("div");
+      item.className = "anomaly-item";
+      if (anomaly.severity === "medium") {
+        item.classList.add("severity-medium");
+      }
+
+      const dot = document.createElement("div");
+      dot.className = "anomaly-severity";
+      dot.classList.add(anomaly.severity === "high" ? "high" : "medium");
+
+      const sensor = document.createElement("span");
+      sensor.className = "anomaly-sensor";
+      sensor.textContent = "Sensor " + sanitizeText(anomaly.sensor_id);
+
+      const count = document.createElement("span");
+      count.className = "anomaly-count";
+      count.textContent = Number(anomaly.count);
+
+      item.appendChild(dot);
+      item.appendChild(sensor);
+      item.appendChild(count);
+      list.appendChild(item);
+    }
+  }
+
+  function updateUI(data) {
+    setStatusColor(data.level_color);
+    $id("status-label").textContent = LEVEL_LABELS[data.level] || data.level;
+    $id("status-label").classList.add("fade-update");
+
+    $id("stat-vehicles").textContent = Number(data.total_vehicles).toLocaleString("de-DE");
+    $id("stat-sensors").textContent = Number(data.active_sensors);
+    $id("stat-alerts").textContent = Number(data.anomaly_count);
+
+    if (data.anomaly_count > 0) {
+      $id("stat-alerts").style.color = "#f59e0b";
+    } else {
+      $id("stat-alerts").style.color = "";
+    }
+
+    renderAnomalies(data.anomalies);
+
+    $id("error-banner").classList.remove("visible");
+
+    setTimeout(() => {
+      $id("status-label").classList.remove("fade-update");
+    }, 400);
+  }
+
+  async function fetchStatus() {
+    const dot = $id("refresh-dot");
+    const label = $id("refresh-label");
+
+    dot.classList.add("loading");
+    label.textContent = "Laden\u2026";
+
+    try {
+      const res = await fetch("/api/traffic-status");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      updateUI(data);
+      dot.style.background = "#22c55e";
+      label.textContent = "Live";
+    } catch (err) {
+      console.error("Fetch error:", err);
+      $id("error-banner").classList.add("visible");
+      dot.style.background = "#ef4444";
+      label.textContent = "Offline";
+    } finally {
+      dot.classList.remove("loading");
+    }
+  }
+
+  updateClock();
+  setInterval(updateClock, 10000);
+
+  fetchStatus();
+  setInterval(fetchStatus, REFRESH_INTERVAL);
+</script>
+
+</body>
+</html>
