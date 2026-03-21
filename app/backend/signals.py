@@ -170,6 +170,24 @@ def compute_city_summary(analysis, pairs):
 
     busiest = max(analysis.items(), key=lambda kv: kv[1]["total_volume"])
 
+    # Compute peak vs off-peak ratio
+    peak_vol = sum(city_profile[h] for h in range(7, 19))
+    offpeak_vol = sum(city_profile[h] for h in range(0, 7)) + sum(city_profile[h] for h in range(19, 24))
+    peak_ratio = round(peak_vol / max(1, offpeak_vol) * 12 / 12, 1)  # normalize by hours
+
+    # Estimated daily savings (conservative 15% reduction in peak wait time)
+    daily_savings_hours = int(peak_vol * 0.15 / 60)
+
+    # Top 5 worst intersections by congestion score (volume × variance)
+    hotspots = []
+    for sid, a in analysis.items():
+        cv = a.get("cv", 0)
+        vol = a.get("total_volume", 0)
+        score = a.get("mean", 0) * a.get("stddev", 0)
+        if score > 0:
+            hotspots.append({"sensor_id": sid, "score": round(score), "cv": round(cv, 2), "volume": vol})
+    hotspots.sort(key=lambda x: -x["score"])
+
     return {
         "total_sensors": len(analysis),
         "total_readings": total_readings,
@@ -183,6 +201,9 @@ def compute_city_summary(analysis, pairs):
         },
         "quietest_hour": f"{quiet_h:02d}:00",
         "vehicle_type_breakdown": breakdown,
+        "peak_vs_offpeak_ratio": peak_ratio,
+        "estimated_daily_savings_hours": daily_savings_hours,
+        "top_hotspots": hotspots[:5],
     }
 
 

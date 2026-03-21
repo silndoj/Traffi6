@@ -566,6 +566,41 @@ body {
   border-radius: 8px;
   padding: 14px;
 }
+.summary-problem,
+.summary-solution {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.problem-title,
+.solution-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+}
+.problem-title {
+  color: var(--color-truck);
+}
+.solution-title {
+  color: var(--color-bicycle);
+}
+.problem-stat {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+.problem-value {
+  font-weight: 700;
+  color: var(--color-truck);
+  font-feature-settings: "tnum";
+}
+.solution-value {
+  font-weight: 700;
+  color: var(--color-bicycle);
+  font-feature-settings: "tnum";
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

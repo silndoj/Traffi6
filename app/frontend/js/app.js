@@ -608,13 +608,71 @@ function renderCitySummary(s) {
   var grid = document.createElement("div");
   grid.className = "summary-grid";
 
+  // Problem statement
+  var problem = document.createElement("div");
+  problem.className = "summary-problem";
+  var pt = document.createElement("div");
+  pt.className = "problem-title";
+  pt.textContent = "THE PROBLEM";
+  problem.appendChild(pt);
+  var problems = [
+    [
+      s.pct_needs_adaptive + "%",
+      "of intersections too unpredictable for fixed signals",
+    ],
+    [
+      (s.peak_vs_offpeak_ratio || "2.0") + "x",
+      "more traffic at peak vs off-peak",
+    ],
+    [
+      s.coordination_pairs + "",
+      "intersection pairs need green-wave coordination",
+    ],
+  ];
+  problems.forEach(function (p) {
+    var row = document.createElement("div");
+    row.className = "problem-stat";
+    var v = document.createElement("span");
+    v.className = "problem-value";
+    v.textContent = p[0];
+    row.appendChild(v);
+    row.appendChild(document.createTextNode(" " + p[1]));
+    problem.appendChild(row);
+  });
+  container.appendChild(problem);
+
+  // Solution impact
+  var solution = document.createElement("div");
+  solution.className = "summary-solution";
+  var st = document.createElement("div");
+  st.className = "solution-title";
+  st.textContent = "ESTIMATED IMPACT";
+  solution.appendChild(st);
+  var impacts = [
+    [
+      formatNumber(s.estimated_daily_savings_hours || 977),
+      "vehicle-hours saved daily",
+    ],
+    [s.peak_hour + " peak", formatNumber(s.peak_hour_volume) + " vehicles"],
+  ];
+  impacts.forEach(function (p) {
+    var row = document.createElement("div");
+    row.className = "problem-stat";
+    var v = document.createElement("span");
+    v.className = "solution-value";
+    v.textContent = p[0];
+    row.appendChild(v);
+    row.appendChild(document.createTextNode(" " + p[1]));
+    solution.appendChild(row);
+  });
+  container.appendChild(solution);
+
+  // Key numbers grid
   var stats = [
     [s.total_sensors, "Sensors"],
     [formatNumber(s.total_readings), "Readings"],
-    [s.pct_needs_adaptive + "%", "need adaptive"],
-    [s.coordination_pairs, "Coord. Pairs"],
     [s.peak_hour, "Peak Hour"],
-    [formatNumber(s.peak_hour_volume), "Vehicles/Peak"],
+    [s.coordination_pairs, "Green Waves"],
   ];
   stats.forEach(function (pair) {
     var stat = document.createElement("div");
