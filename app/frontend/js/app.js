@@ -15,11 +15,11 @@ const state = {
 const VEHICLE_TYPES = ["car", "truck", "motor_bike", "bicycle", "foot"];
 
 const ICON_SIZES = {
-  car: [28, 28],
-  truck: [32, 28],
-  motor_bike: [28, 28],
-  bicycle: [26, 26],
-  foot: [22, 22],
+  car: [20, 20],
+  truck: [36, 24],
+  motor_bike: [32, 28],
+  bicycle: [30, 24],
+  foot: [28, 28],
 };
 
 const ICON_CACHE = {};
