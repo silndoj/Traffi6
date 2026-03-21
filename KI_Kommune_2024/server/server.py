@@ -1,7 +1,6 @@
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import json
 import os
-import folium
 
 from data_loader import load_and_group, compute_traffic_volumes
 from sensor_mapping import load_or_create_mapping
@@ -15,8 +14,12 @@ PORT = 8000
 def generate_map():
     if os.path.exists("map.html"):
         return
-    my_map = folium.Map(location=[49.00587, 8.40162], zoom_start=15)
-    my_map.save("map.html")
+    try:
+        import folium
+        my_map = folium.Map(location=[49.00587, 8.40162], zoom_start=15)
+        my_map.save("map.html")
+    except ImportError:
+        print("Warning: folium not installed and map.html not found. Map will not display.")
 
 
 def get_data(handler):
