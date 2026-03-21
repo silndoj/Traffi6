@@ -367,13 +367,14 @@
     for (const anomaly of sorted) {
       const item = document.createElement("div");
       item.className = "anomaly-item";
-      if (anomaly.severity === "medium") {
+      const isHigh = typeof anomaly.severity === "number" ? anomaly.severity > 3 : anomaly.severity === "high";
+      if (!isHigh) {
         item.classList.add("severity-medium");
       }
 
       const dot = document.createElement("div");
       dot.className = "anomaly-severity";
-      dot.classList.add(anomaly.severity === "high" ? "high" : "medium");
+      dot.classList.add(isHigh ? "high" : "medium");
 
       const sensor = document.createElement("span");
       sensor.className = "anomaly-sensor";
@@ -439,7 +440,7 @@
   }
 
   updateClock();
-  setInterval(updateClock, 10000);
+  setInterval(updateClock, 1000);
 
   fetchStatus();
   setInterval(fetchStatus, REFRESH_INTERVAL);

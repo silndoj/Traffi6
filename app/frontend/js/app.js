@@ -221,11 +221,13 @@ async function fetchIntelligence() {
 // ── QR Code ─────────────────────────────────────────────────────────────────
 
 function generateQR() {
+  const port = window.location.port ? ":" + window.location.port : "";
   const url =
     window.location.protocol +
     "//" +
     window.location.hostname +
-    ":8000/mobile.html";
+    port +
+    "/mobile.html";
   new QRCode(document.getElementById("qr-code"), {
     text: url,
     width: 100,
@@ -307,7 +309,8 @@ function updateTimeline(currentStep, totalSteps) {
 
 function connectWebSocket() {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const wsUrl = `${protocol}//${window.location.hostname}:8000/ws/traffic`;
+  const wsPort = window.location.port ? ":" + window.location.port : "";
+  const wsUrl = `${protocol}//${window.location.hostname}${wsPort}/ws/traffic`;
 
   dom.wsStatusDot.classList.remove("connected");
   dom.wsStatusText.textContent = "Verbinde...";
@@ -392,8 +395,8 @@ async function fetchStats() {
         }
       }
     }
-    if (data.total !== undefined) {
-      dom.totalVehicles.textContent = formatNumber(data.total);
+    if (data.total_vehicles !== undefined) {
+      dom.totalVehicles.textContent = formatNumber(data.total_vehicles);
     }
   } catch (e) {
     // Stats endpoint may not be available yet

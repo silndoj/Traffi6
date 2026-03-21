@@ -488,6 +488,11 @@ body {
 .alert-card.warning .alert-severity {
   color: var(--color-motor_bike);
 }
+.alert-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 .alert-type {
   font-size: 11px;
   color: var(--text-primary);
