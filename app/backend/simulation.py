@@ -374,6 +374,56 @@ class TrafficSimulation:
             })
         return lights
 
+    def enable_green_wave(self, corridors):
+        """Synchronize traffic light phases along green-wave corridors.
+
+        For each corridor, the first intersection's light sets the base phase.
+        Subsequent lights are offset by the travel time between them, so a
+        vehicle hitting the first green will hit all subsequent greens.
+        """
+        self._green_wave_active = True
+        self._original_offsets = {}
+
+        for corridor in corridors:
+            sensors = corridor.get("sensors", [])
+            if len(sensors) < 2:
+                continue
+
+            # Find the traffic light node closest to each sensor
+            for i, sensor in enumerate(sensors):
+                slat, slon = sensor["lat"], sensor["lon"]
+                best_node = None
+                best_dist = float("inf")
+                for nid, tl in self._traffic_lights.items():
+                    d = abs(tl["lat"] - slat) + abs(tl["lon"] - slon)
+                    if d < best_dist:
+                        best_dist = d
+                        best_node = nid
+
+                if best_node and best_dist < 0.002:
+                    # Save original offset for restore
+                    if best_node not in self._original_offsets:
+                        self._original_offsets[best_node] = self._traffic_lights[best_node]["phase_offset"]
+
+                    # Set synchronized offset: base phase + travel time offset
+                    # All corridor lights share same base phase so green cascades
+                    base_phase = 0.0
+                    self._traffic_lights[best_node]["phase_offset"] = base_phase + sensor["offset_sec"]
+
+        synced = len(self._original_offsets)
+        print(f"[sim] Green wave enabled: {synced} lights synchronized across {len(corridors)} corridors")
+
+    def disable_green_wave(self):
+        """Restore original random phase offsets."""
+        if not hasattr(self, '_original_offsets'):
+            return
+        for nid, original_offset in self._original_offsets.items():
+            if nid in self._traffic_lights:
+                self._traffic_lights[nid]["phase_offset"] = original_offset
+        self._original_offsets = {}
+        self._green_wave_active = False
+        print("[sim] Green wave disabled: original timing restored")
+
     def _create_pool(self):
         vid = 0
         for vehicle_type, share in POOL_COMPOSITION.items():

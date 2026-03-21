@@ -874,6 +874,9 @@ function toggleCorridors() {
   state.corridorsVisible = !state.corridorsVisible;
   document.getElementById("btn-corridors").classList.toggle("active");
 
+  // Send green wave command to backend — actually syncs traffic light phases
+  wsSend({ green_wave: state.corridorsVisible });
+
   if (state.corridorsVisible && state.corridorData) {
     if (!state.corridorLayer) {
       state.corridorLayer = L.layerGroup();
