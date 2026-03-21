@@ -203,10 +203,23 @@ class Vehicle:
                     if n_dist < my_dist:
                         weights[i] *= 3.0  # strongly prefer getting closer
 
-        # Boundary containment: if far from center, strongly prefer inward movement
+        # Boundary containment
         dist_from_center = _latlon_distance_m(CENTER_LAT, CENTER_LON, self.x, self.y)
-        if dist_from_center > BOUNDARY_RADIUS_M:
-            boost = 1.0 + (dist_from_center - BOUNDARY_RADIUS_M) / 300
+        if dist_from_center > 4500:
+            # Hard redirect: teleport to central node
+            new_node = self._net.random_central_node()
+            self.current_node = new_node
+            self.target_node = new_node
+            lat, lon = self._net.position_of(new_node)
+            self.x = lat
+            self.y = lon
+            neighbors = self._net.neighbors_of(new_node)
+            if not neighbors:
+                return
+            candidates = neighbors
+            weights = [self._net.weight_of(n) for n in candidates]
+        elif dist_from_center > BOUNDARY_RADIUS_M:
+            boost = 2.0 + (dist_from_center - BOUNDARY_RADIUS_M) / 200
             for i, n in enumerate(candidates):
                 n_lat, n_lon = self._net.position_of(n)
                 n_dist = _latlon_distance_m(CENTER_LAT, CENTER_LON, n_lat, n_lon)

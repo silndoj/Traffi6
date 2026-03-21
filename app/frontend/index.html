@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KI Kommune 2024 — Verkehr in Echtzeit</title>
+  <title>KI Kommune 2024 — Real-Time Traffic</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -18,7 +18,7 @@
         </svg>
       </div>
       <h2 class="loading-title">KI Kommune 2024</h2>
-      <p class="loading-subtitle">Verkehrsnetz wird geladen...</p>
+      <p class="loading-subtitle">Loading road network...</p>
       <div class="loading-bar"><div class="loading-bar-fill"></div></div>
     </div>
   </div>
@@ -32,58 +32,58 @@
         </svg>
         <h1>KI Kommune 2024</h1>
       </div>
-      <p class="subtitle">Verkehr in Echtzeit — Karlsruhe</p>
+      <p class="subtitle">Real-Time Traffic — Karlsruhe</p>
     </div>
 
     <div class="tab-bar">
       <button class="tab-btn active" data-tab="live">Live</button>
-      <button class="tab-btn" data-tab="analyse">Analyse</button>
-      <button class="tab-btn" data-tab="mobil">Mobil</button>
+      <button class="tab-btn" data-tab="analyse">Analysis</button>
+      <button class="tab-btn" data-tab="mobil">Mobile</button>
     </div>
 
     <div class="tab-panel active" id="tab-live">
 
     <div class="timestamp-card">
-      <span class="label">Aktuelle Zeit</span>
+      <span class="label">Current Time</span>
       <span id="current-timestamp" class="timestamp-value">--</span>
     </div>
 
     <div class="stats-section">
-      <h2 class="section-title">Fahrzeuge</h2>
+      <h2 class="section-title">Vehicles</h2>
       <div class="stat-grid">
         <div class="stat-card" data-type="car">
-          <img src="assets/car.png" alt="Auto" class="stat-icon">
+          <img src="assets/car.png" alt="Car" class="stat-icon">
           <div class="stat-info">
             <span class="stat-count" id="count-car">0</span>
-            <span class="stat-label">Autos</span>
+            <span class="stat-label">Cars</span>
           </div>
         </div>
         <div class="stat-card" data-type="truck">
-          <img src="assets/truck.png" alt="LKW" class="stat-icon">
+          <img src="assets/truck.png" alt="Truck" class="stat-icon">
           <div class="stat-info">
             <span class="stat-count" id="count-truck">0</span>
-            <span class="stat-label">LKW</span>
+            <span class="stat-label">Trucks</span>
           </div>
         </div>
         <div class="stat-card" data-type="motor_bike">
-          <img src="assets/motor_bike.png" alt="Motorrad" class="stat-icon">
+          <img src="assets/motor_bike.png" alt="Motorcycle" class="stat-icon">
           <div class="stat-info">
             <span class="stat-count" id="count-motor_bike">0</span>
-            <span class="stat-label">Motorräder</span>
+            <span class="stat-label">Motorcycles</span>
           </div>
         </div>
         <div class="stat-card" data-type="bicycle">
-          <img src="assets/bicycle.png" alt="Fahrrad" class="stat-icon">
+          <img src="assets/bicycle.png" alt="Bicycle" class="stat-icon">
           <div class="stat-info">
             <span class="stat-count" id="count-bicycle">0</span>
-            <span class="stat-label">Fahrräder</span>
+            <span class="stat-label">Bicycles</span>
           </div>
         </div>
         <div class="stat-card" data-type="foot">
-          <img src="assets/foot.png" alt="Fußgänger" class="stat-icon">
+          <img src="assets/foot.png" alt="Pedestrian" class="stat-icon">
           <div class="stat-info">
             <span class="stat-count" id="count-foot">0</span>
-            <span class="stat-label">Fußgänger</span>
+            <span class="stat-label">Pedestrians</span>
           </div>
         </div>
       </div>
@@ -91,25 +91,25 @@
 
     <div class="totals-section">
       <div class="total-card">
-        <span class="total-label">Gesamt</span>
+        <span class="total-label">Total</span>
         <span class="total-value" id="total-vehicles">0</span>
       </div>
       <div class="total-card">
-        <span class="total-label">Sensoren</span>
+        <span class="total-label">Sensors</span>
         <span class="total-value" id="active-sensors">0</span>
       </div>
     </div>
 
     <div class="connection-status">
       <span class="status-dot" id="ws-status-dot"></span>
-      <span id="ws-status-text">Verbinde...</span>
+      <span id="ws-status-text">Connecting...</span>
     </div>
 
     </div><!-- /tab-live -->
 
     <div class="tab-panel" id="tab-analyse">
       <div class="intelligence-section">
-        <div class="section-label">VERKEHRSINTELLIGENZ</div>
+        <div class="section-label">TRAFFIC INTELLIGENCE</div>
 
         <button id="btn-heatmap" class="toggle-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -119,37 +119,34 @@
           Heatmap
         </button>
 
-        <!-- Signal Intelligence Toggles -->
         <div class="toggle-group">
           <button id="btn-analysis" class="toggle-btn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-            Analyse
+            Analysis
           </button>
           <button id="btn-corridors" class="toggle-btn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            Grüne Welle
+            Green Wave
           </button>
         </div>
 
-        <!-- City Summary -->
         <div id="city-summary" class="summary-card">
-          <div class="section-label">VERKEHRSINTELLIGENZ</div>
-          <div id="summary-content">Lade Analyse...</div>
+          <div class="section-label">CITY INTELLIGENCE</div>
+          <div id="summary-content">Loading analysis...</div>
         </div>
 
-        <!-- Signal Recommendations -->
         <div id="signal-recommendations" class="recs-section" style="display:none;">
-          <div class="section-label">EMPFEHLUNGEN</div>
+          <div class="section-label">RECOMMENDATIONS</div>
           <div id="recs-list"></div>
-          <div class="model-disclaimer">Basiert auf angenommenem 90s/50% Basiswert</div>
+          <div class="model-disclaimer">Based on assumed 90s/50% fixed-cycle baseline</div>
         </div>
 
         <div id="peak-hours" class="peak-section">
-          <div class="section-label">STOSSZEITEN</div>
+          <div class="section-label">PEAK HOURS</div>
         </div>
 
         <div id="alerts" class="alerts-section">
-          <div class="section-label">WARNUNGEN</div>
+          <div class="section-label">ALERTS</div>
           <div id="alert-list"></div>
         </div>
       </div>
@@ -157,9 +154,9 @@
 
     <div class="tab-panel" id="tab-mobil">
       <div class="qr-section">
-        <div class="section-label">MOBIL ZUGANG</div>
+        <div class="section-label">MOBILE ACCESS</div>
         <div id="qr-code"></div>
-        <div class="qr-label">Scannen für Live-Verkehr</div>
+        <div class="qr-label">Scan for live traffic status</div>
       </div>
     </div><!-- /tab-mobil -->
   </div>
@@ -177,9 +174,9 @@
         </svg>
       </button>
       <div class="speed-group">
-        <button class="speed-btn active" data-speed="1">1x</button>
+        <button class="speed-btn" data-speed="1">1x</button>
         <button class="speed-btn" data-speed="2">2x</button>
-        <button class="speed-btn" data-speed="5">5x</button>
+        <button class="speed-btn active" data-speed="5">5x</button>
         <button class="speed-btn" data-speed="10">10x</button>
         <button class="speed-btn" data-speed="50">50x</button>
       </div>

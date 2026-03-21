@@ -127,7 +127,7 @@ _start_index = 0
 for _i, _ts in enumerate(timestamps):
     _readings = database.get_readings_at(_ts)
     _total = sum(sum(c for _, c in v) for v in _readings.values())
-    if _total >= 30:
+    if _total >= 80:
         _start_index = _i
         # Pre-seed the simulation with this data so vehicles exist immediately
         sim.update_from_data(_readings)

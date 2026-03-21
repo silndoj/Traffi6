@@ -6,7 +6,7 @@ const state = {
   markers: new Map(), // ID -> L.Marker
   sensorMarkers: [],
   isPaused: false,
-  speed: 1,
+  speed: 5,
   timeline: { totalSteps: 0, currentStep: 0, startTime: "", endTime: "" },
   reconnectDelay: 1000,
   counts: { car: 0, truck: 0, motor_bike: 0, bicycle: 0, foot: 0 },
@@ -62,7 +62,7 @@ const dom = {
 // ── Formatting ──────────────────────────────────────────────────────────────
 
 function formatNumber(n) {
-  return Number(n).toLocaleString("de-DE");
+  return Number(n).toLocaleString("en-US");
 }
 
 function formatTimestamp(ts) {
@@ -73,16 +73,16 @@ function formatTimestamp(ts) {
   const months = [
     "Jan",
     "Feb",
-    "Mär",
+    "Mar",
     "Apr",
-    "Mai",
+    "May",
     "Jun",
     "Jul",
     "Aug",
     "Sep",
-    "Okt",
+    "Oct",
     "Nov",
-    "Dez",
+    "Dec",
   ];
   const month = months[d.getMonth()];
   const year = d.getFullYear();
@@ -99,16 +99,16 @@ function formatTimeShort(ts) {
   const months = [
     "Jan",
     "Feb",
-    "Mär",
+    "Mar",
     "Apr",
-    "Mai",
+    "May",
     "Jun",
     "Jul",
     "Aug",
     "Sep",
-    "Okt",
+    "Oct",
     "Nov",
-    "Dez",
+    "Dec",
   ];
   return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
@@ -163,7 +163,7 @@ function initHeatmap() {
 function renderAlerts(anomalies) {
   const container = document.getElementById("alert-list");
   if (!anomalies.length) {
-    container.innerHTML = '<div class="no-alerts">Keine Warnungen</div>';
+    container.innerHTML = '<div class="no-alerts">No alerts</div>';
     return;
   }
   container.innerHTML = anomalies
@@ -171,7 +171,7 @@ function renderAlerts(anomalies) {
     .map((a) => {
       const severityClass = a.severity > 3 ? "danger" : "warning";
       const typeLabel =
-        a.type === "high_traffic" ? "Hohes Verkehrsaufkommen" : a.type;
+        a.type === "high_traffic" ? "High Traffic Volume" : a.type;
       const sensorLabel = "Sensor " + a.sensor_id.slice(0, 8) + "...";
       return (
         '<div class="alert-card ' +
@@ -215,7 +215,7 @@ async function fetchIntelligence() {
               "</span>" +
               '<span class="peak-count">' +
               formatNumber(Math.round(p.avg_vehicles)) +
-              " Fhz.</span>" +
+              " veh.</span>" +
               "</div>",
           )
           .join("");
@@ -341,13 +341,13 @@ function connectWebSocket() {
   const wsUrl = `${protocol}//${window.location.hostname}${wsPort}/ws/traffic`;
 
   dom.wsStatusDot.classList.remove("connected");
-  dom.wsStatusText.textContent = "Verbinde...";
+  dom.wsStatusText.textContent = "Connecting...";
 
   state.ws = new WebSocket(wsUrl);
 
   state.ws.onopen = () => {
     dom.wsStatusDot.classList.add("connected");
-    dom.wsStatusText.textContent = "Verbunden";
+    dom.wsStatusText.textContent = "Connected";
     state.reconnectDelay = 1000;
 
     // Fade out loading overlay after brief delay
@@ -399,7 +399,7 @@ function connectWebSocket() {
 
   state.ws.onclose = () => {
     dom.wsStatusDot.classList.remove("connected");
-    dom.wsStatusText.textContent = "Getrennt — Neuverbindung...";
+    dom.wsStatusText.textContent = "Disconnected — Reconnecting...";
 
     // Exponential backoff reconnect
     setTimeout(connectWebSocket, state.reconnectDelay);
@@ -549,12 +549,12 @@ function renderCitySummary(s) {
   grid.className = "summary-grid";
 
   var stats = [
-    [s.total_sensors, "Sensoren"],
-    [formatNumber(s.total_readings), "Messungen"],
-    [s.pct_needs_adaptive + "%", "brauchen Anpassung"],
-    [s.coordination_pairs, "Koordinationspaare"],
-    [s.peak_hour, "Stoßzeit"],
-    [formatNumber(s.peak_hour_volume), "Fahrzeuge/Stoßzeit"],
+    [s.total_sensors, "Sensors"],
+    [formatNumber(s.total_readings), "Readings"],
+    [s.pct_needs_adaptive + "%", "need adaptive"],
+    [s.coordination_pairs, "Coord. Pairs"],
+    [s.peak_hour, "Peak Hour"],
+    [formatNumber(s.peak_hour_volume), "Vehicles/Peak"],
   ];
   stats.forEach(function (pair) {
     var stat = document.createElement("div");
@@ -607,18 +607,18 @@ function buildPopupContent(sid, data) {
     "color:white;padding:2px 6px;border-radius:4px;font-size:10px;background:" +
     (data.needs_adaptive ? "#ef4444" : "#22c55e") +
     ";";
-  badge.textContent = data.needs_adaptive ? "Adaptiv nötig" : "Stabil";
+  badge.textContent = data.needs_adaptive ? "Needs Adaptive" : "Stable";
   wrap.appendChild(badge);
 
   var detail = document.createElement("div");
   detail.style.cssText = "margin-top:8px;font-size:11px;color:#666;";
   detail.textContent =
-    "Variabilität: " + cv.toFixed(2) + " | Stoßzeit: " + data.peak_hour + ":00";
+    "Variability: " + cv.toFixed(2) + " | Stoßzeit: " + data.peak_hour + ":00";
   wrap.appendChild(detail);
 
   var label = document.createElement("div");
   label.style.cssText = "margin-top:8px;font-size:10px;color:#888;";
-  label.textContent = "Stündliches Profil (rot = Stoßzeit)";
+  label.textContent = "Hourly Profile (red = rush hour)";
   wrap.appendChild(label);
 
   var hourly = data.hourly_profile || [];
@@ -702,7 +702,7 @@ function renderRecommendations() {
 
     var suggestion = document.createElement("div");
     suggestion.className = "rec-suggestion";
-    suggestion.textContent = "Modellierte Verbesserung: ~" + improvement + "%";
+    suggestion.textContent = "Estimated Improvement: ~" + improvement + "%";
     card.appendChild(suggestion);
 
     container.appendChild(card);
@@ -715,14 +715,14 @@ function buildCorridorPopup(corridor, idx) {
 
   var title = document.createElement("div");
   title.style.fontWeight = "600";
-  title.textContent = "Grüne Welle #" + (idx + 1);
+  title.textContent = "Green Wave #" + (idx + 1);
   wrap.appendChild(title);
 
   var info = document.createElement("div");
   info.style.cssText = "font-size:11px;margin-top:4px;";
   info.textContent =
     corridor.sensors.length +
-    " Kreuzungen | " +
+    " intersections | " +
     corridor.total_length_m.toFixed(0) +
     "m";
   wrap.appendChild(info);
@@ -730,7 +730,7 @@ function buildCorridorPopup(corridor, idx) {
   var travel = document.createElement("div");
   travel.style.fontSize = "11px";
   travel.textContent =
-    "Reisezeit: " + corridor.travel_time_sec.toFixed(1) + "s bei 30 km/h";
+    "Travel time: " + corridor.travel_time_sec.toFixed(1) + "s at 30 km/h";
   wrap.appendChild(travel);
 
   var offsets = corridor.sensors
@@ -740,13 +740,13 @@ function buildCorridorPopup(corridor, idx) {
     .join(" \u2192 ");
   var offsetEl = document.createElement("div");
   offsetEl.style.cssText = "font-size:10px;color:#888;margin-top:4px;";
-  offsetEl.textContent = "Zeitversatz: " + offsets;
+  offsetEl.textContent = "Signal offset: " + offsets;
   wrap.appendChild(offsetEl);
 
   var disclaimer = document.createElement("div");
   disclaimer.style.cssText =
     "font-size:9px;color:#aaa;margin-top:4px;font-style:italic;";
-  disclaimer.textContent = "Modelliert \u2014 basiert auf 30 km/h Annahme";
+  disclaimer.textContent = "Modeled \u2014 based on 30 km/h assumption";
   wrap.appendChild(disclaimer);
 
   return wrap;
