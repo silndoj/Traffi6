@@ -107,6 +107,21 @@ except Exception:
     print("[server] simulation.py not available — using FallbackSimulation")
 
 timestamps = database.get_timestamps()
+
+# Find first timestamp with meaningful traffic (skip sparse late-night data)
+_start_index = 0
+for _i, _ts in enumerate(timestamps):
+    _readings = database.get_readings_at(_ts)
+    _total = sum(sum(c for _, c in v) for v in _readings.values())
+    if _total >= 30:
+        _start_index = _i
+        # Pre-seed the simulation with this data so vehicles exist immediately
+        sim.update_from_data(_readings)
+        for _ in range(5):
+            sim.tick(0.5)
+        print(f"[server] Starting at index {_i} ({_ts}) with {_total} vehicles")
+        break
+
 print(f"[server] {len(sensor_ids)} sensors | {len(timestamps):,} timestamps loaded")
 
 # ---------------------------------------------------------------------------
@@ -163,7 +178,7 @@ def api_sensors():
 # WebSocket streaming
 # ---------------------------------------------------------------------------
 
-TICKS_PER_TIMESTAMP = 10
+TICKS_PER_TIMESTAMP = 20   # 20 ticks between data updates → vehicles drive ~2 sec before new counts
 DEFAULT_FRAME_INTERVAL = 0.1  # 100 ms → 10 fps
 
 
@@ -171,7 +186,8 @@ DEFAULT_FRAME_INTERVAL = 0.1  # 100 ms → 10 fps
 async def ws_traffic(ws: WebSocket):
     await ws.accept()
 
-    ts_index = 0
+    # Start at first timestamp with meaningful traffic (skip empty late-night data)
+    ts_index = _start_index
     tick_count = 0
     speed_multiplier = 1.0
     paused = False

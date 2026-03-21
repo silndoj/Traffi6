@@ -263,11 +263,12 @@ class TrafficSimulation:
                 mapped = VEHICLE_TYPE_MAP.get(raw_type, raw_type)
                 desired[(sensor_id, mapped)] += count
 
-        # All sensor+type buckets we need to consider
-        all_keys = set(desired.keys()) | set(self._bucket.keys())
+        # Only adjust sensors that actually reported in this timestamp.
+        # Sensors that didn't report keep their vehicles driving.
+        reporting_sensors = set(readings.keys())
 
-        for key in all_keys:
-            want = desired.get(key, 0)
+        for key in set(desired.keys()):
+            want = desired[key]
             # Clean stale IDs from bucket
             self._bucket[key] = [
                 vid for vid in self._bucket[key] if vid in self._vehicles
@@ -280,6 +281,17 @@ class TrafficSimulation:
                     self._spawn(sensor_id, vehicle_type)
             elif have > want:
                 self._despawn(sensor_id, vehicle_type, have - want)
+
+        # For reporting sensors that had a type before but now report 0,
+        # despawn those specific types
+        for key in list(self._bucket.keys()):
+            sensor_id, vehicle_type = key
+            if sensor_id in reporting_sensors and key not in desired:
+                self._bucket[key] = [
+                    vid for vid in self._bucket[key] if vid in self._vehicles
+                ]
+                if self._bucket[key]:
+                    self._despawn(sensor_id, vehicle_type, len(self._bucket[key]))
 
     def tick(self, dt: float) -> None:
         """Advance all vehicles by dt seconds."""
