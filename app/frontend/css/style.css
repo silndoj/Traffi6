@@ -7,38 +7,37 @@
 }
 
 :root {
-  --bg-primary: #0f1117;
-  --bg-card: #1a1d27;
-  --bg-card-hover: #1f2233;
-  --border: #2a2d37;
-  --border-light: #353845;
-  --text-primary: #e4e4e7;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --color-car: #3b82f6;
+  --bg-primary: #0a0f1e;
+  --bg-card: rgba(20, 25, 45, 0.6);
+  --bg-card-hover: rgba(30, 35, 55, 0.7);
+  --bg-sidebar: rgba(10, 15, 30, 0.95);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(255, 255, 255, 0.12);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --text-primary: #e8ecf4;
+  --text-secondary: #8892a8;
+  --text-muted: #5a6478;
+  --accent: #4a90d9;
+  --accent-bright: #6bb5ff;
+  --accent-hover: #3a7bc8;
+  --color-car: #4a90d9;
   --color-truck: #ef4444;
   --color-motor_bike: #f59e0b;
   --color-bicycle: #22c55e;
   --color-foot: #a855f7;
-  --sidebar-width: 280px;
+  --sidebar-width: 300px;
   --controls-height: 64px;
 }
 
 html,
 body {
   height: 100%;
-  font-family:
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ── Map ────────────────────────────────────── */
@@ -60,20 +59,20 @@ body {
   left: 0;
   width: var(--sidebar-width);
   height: calc(100% - var(--controls-height));
-  background: rgba(15, 17, 23, 0.85);
+  background: var(--bg-sidebar);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-right: 1px solid var(--border);
   z-index: 10;
   display: flex;
   flex-direction: column;
-  padding: 20px 16px;
+  padding: 20px;
   gap: 20px;
   overflow-y: auto;
 }
 
 .sidebar-header {
-  padding-bottom: 16px;
+  padding-bottom: 18px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -84,8 +83,8 @@ body {
 }
 
 .logo h1 {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text-primary);
 }
@@ -93,8 +92,53 @@ body {
 .subtitle {
   font-size: 12px;
   color: var(--text-secondary);
-  margin-top: 4px;
+  margin-top: 6px;
   padding-left: 34px;
+  font-weight: 400;
+}
+
+/* ── Tab Bar ───────────────────────────────── */
+
+.tab-bar {
+  display: flex;
+  gap: 0;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.tab-btn:hover {
+  color: var(--text-secondary);
+}
+
+.tab-btn.active {
+  color: var(--accent-bright);
+  border-bottom-color: var(--accent-bright);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 /* ── Timestamp Card ─────────────────────────── */
@@ -102,18 +146,24 @@ body {
 .timestamp-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  transition: border-color 0.2s ease;
+}
+
+.timestamp-card:hover {
+  border-color: var(--border-hover);
 }
 
 .timestamp-card .label {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
+  font-weight: 500;
 }
 
 .timestamp-value {
@@ -128,9 +178,10 @@ body {
 .section-title {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
   margin-bottom: 10px;
+  font-weight: 600;
 }
 
 .stat-grid {
@@ -145,16 +196,14 @@ body {
   gap: 12px;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
+  border-radius: 12px;
+  padding: 10px 14px;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .stat-card:hover {
   background: var(--bg-card-hover);
-  border-color: var(--border-light);
+  border-color: var(--border-hover);
 }
 
 .stat-card[data-type="car"] {
@@ -186,15 +235,19 @@ body {
 }
 
 .stat-count {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
+  color: var(--text-primary);
 }
 
 .stat-label {
   font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--text-secondary);
+  font-weight: 500;
 }
 
 /* ── Totals ─────────────────────────────────── */
@@ -208,26 +261,32 @@ body {
   flex: 1;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 12px;
+  padding: 14px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
+  transition: border-color 0.2s ease;
+}
+
+.total-card:hover {
+  border-color: var(--border-hover);
 }
 
 .total-label {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
+  font-weight: 500;
 }
 
 .total-value {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--accent);
+  color: var(--accent-bright);
 }
 
 /* ── Connection Status ──────────────────────── */
@@ -239,6 +298,7 @@ body {
   gap: 8px;
   font-size: 12px;
   color: var(--text-muted);
+  font-weight: 400;
 }
 
 .status-dot {
@@ -246,11 +306,12 @@ body {
   height: 8px;
   border-radius: 50%;
   background: var(--color-truck);
-  transition: background 0.3s ease;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
 .status-dot.connected {
   background: var(--color-bicycle);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
 }
 
 /* ── Controls Bar ───────────────────────────── */
@@ -261,21 +322,21 @@ body {
   left: 0;
   right: 0;
   height: var(--controls-height);
-  background: rgba(15, 17, 23, 0.9);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(10, 15, 30, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--border);
   z-index: 10;
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 24px;
   gap: 20px;
 }
 
 .controls-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   flex-shrink: 0;
 }
 
@@ -283,19 +344,20 @@ body {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-hover);
   background: var(--bg-card);
   color: var(--text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
 }
 
 .control-btn:hover {
   background: var(--accent);
   border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(74, 144, 217, 0.3);
 }
 
 .speed-group {
@@ -304,26 +366,29 @@ body {
 }
 
 .speed-btn {
-  padding: 6px 12px;
-  border-radius: 16px;
+  padding: 6px 14px;
+  border-radius: 20px;
   border: 1px solid var(--border);
-  background: var(--bg-card);
-  color: var(--text-secondary);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
 }
 
 .speed-btn:hover {
-  border-color: var(--border-light);
-  color: var(--text-primary);
+  border-color: var(--border-hover);
+  color: var(--text-secondary);
+  background: var(--bg-card);
 }
 
 .speed-btn.active {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+  box-shadow: 0 0 10px rgba(74, 144, 217, 0.25);
 }
 
 .controls-center {
@@ -339,6 +404,7 @@ body {
   color: var(--text-muted);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
 .timeline-container {
@@ -348,15 +414,16 @@ body {
 
 .timeline-track {
   position: relative;
-  height: 6px;
-  background: var(--border);
-  border-radius: 3px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 1px;
   cursor: pointer;
-  transition: height 0.15s ease;
+  transition: height 0.15s ease, background 0.15s ease;
 }
 
 .timeline-track:hover {
-  height: 8px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .timeline-progress {
@@ -364,8 +431,8 @@ body {
   top: 0;
   left: 0;
   height: 100%;
-  background: var(--accent);
-  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-bright));
+  border-radius: 1px;
   width: 0%;
   transition: width 0.1s linear;
 }
@@ -374,15 +441,16 @@ body {
   position: absolute;
   top: 50%;
   left: 0%;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   background: #fff;
-  border: 2px solid var(--accent);
+  border: 2px solid var(--accent-bright);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.2s ease;
   pointer-events: none;
+  box-shadow: 0 0 8px rgba(107, 181, 255, 0.4);
 }
 
 .timeline-track:hover .timeline-thumb {
@@ -397,6 +465,7 @@ body {
   font-size: 12px;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
+  font-weight: 400;
 }
 
 /* ── Leaflet Overrides ──────────────────────── */
@@ -406,19 +475,21 @@ body {
 }
 
 .leaflet-control-zoom a {
-  background: var(--bg-card) !important;
+  background: rgba(20, 25, 45, 0.8) !important;
   color: var(--text-primary) !important;
   border-color: var(--border) !important;
+  backdrop-filter: blur(10px);
 }
 
 .leaflet-control-zoom a:hover {
-  background: var(--bg-card-hover) !important;
+  background: rgba(30, 35, 55, 0.9) !important;
 }
 
 .leaflet-control-attribution {
-  background: rgba(15, 17, 23, 0.7) !important;
+  background: rgba(10, 15, 30, 0.7) !important;
   color: var(--text-muted) !important;
   font-size: 10px !important;
+  font-family: 'Inter', sans-serif !important;
 }
 
 .leaflet-control-attribution a {
@@ -427,19 +498,43 @@ body {
 
 /* ── Scrollbar ──────────────────────────────── */
 
+#sidebar::-webkit-scrollbar {
+  width: 3px;
+}
+
+#sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+
+#sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* Firefox scrollbar */
+#sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
 /* ── Intelligence Section ──────────────────── */
 
 .intelligence-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .section-label {
-  font-size: 11px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
   color: var(--text-muted);
+  font-weight: 600;
 }
 
 .toggle-btn {
@@ -452,107 +547,24 @@ body {
   border-radius: 20px;
   color: var(--text-secondary);
   cursor: pointer;
+  font-family: 'Inter', sans-serif;
   font-size: 12px;
-  transition: all 0.2s;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
+
 .toggle-btn:hover {
-  border-color: var(--accent);
+  border-color: var(--border-hover);
   color: var(--text-primary);
+  background: var(--bg-card-hover);
 }
+
 .toggle-btn.active {
   background: var(--accent);
   color: white;
   border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(74, 144, 217, 0.2);
 }
-
-.alert-card {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: var(--bg-card);
-  border-left: 3px solid var(--color-motor_bike);
-  border-radius: 6px;
-  margin-bottom: 6px;
-}
-.alert-card.danger {
-  border-left-color: var(--color-truck);
-}
-.alert-severity {
-  font-size: 16px;
-  font-weight: 700;
-  font-feature-settings: "tnum";
-  color: var(--color-truck);
-  min-width: 36px;
-}
-.alert-card.warning .alert-severity {
-  color: var(--color-motor_bike);
-}
-.alert-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.alert-type {
-  font-size: 11px;
-  color: var(--text-primary);
-  font-weight: 500;
-}
-.alert-sensor {
-  font-size: 10px;
-  color: var(--text-secondary);
-}
-.no-alerts {
-  font-size: 11px;
-  color: var(--text-secondary);
-  padding: 8px 0;
-}
-
-.peak-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  font-size: 12px;
-  border-bottom: 1px solid var(--border);
-}
-.peak-hour {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-.peak-count {
-  color: var(--text-secondary);
-  font-feature-settings: "tnum";
-}
-
-.qr-section {
-  text-align: center;
-  padding: 12px 0;
-}
-.qr-label {
-  font-size: 10px;
-  color: var(--text-secondary);
-  margin-top: 8px;
-}
-#qr-code {
-  display: inline-block;
-  padding: 8px;
-  background: var(--bg-card);
-  border-radius: 8px;
-}
-
-/* ── Traffic Lights ─────────────────────────── */
-
-.tl-icon {
-  background: transparent !important;
-  border: none !important;
-}
-.tl-dot {
-  transition:
-    background 0.3s ease,
-    box-shadow 0.3s ease;
-}
-
-/* ── Signal Intelligence ───────────────────── */
 
 .toggle-group {
   display: flex;
@@ -560,173 +572,273 @@ body {
   flex-wrap: wrap;
 }
 
+/* ── Alert Cards ───────────────────────────── */
+
+.alert-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--color-motor_bike);
+  border-radius: 12px;
+  margin-bottom: 6px;
+  transition: border-color 0.2s ease;
+}
+
+.alert-card:hover {
+  border-color: var(--border-hover);
+}
+
+.alert-card.danger {
+  border-left-color: var(--color-truck);
+}
+
+.alert-severity {
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-truck);
+  min-width: 36px;
+}
+
+.alert-card.warning .alert-severity {
+  color: var(--color-motor_bike);
+}
+
+.alert-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.alert-type {
+  font-size: 11px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.alert-sensor {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.no-alerts {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 8px 0;
+}
+
+/* ── Peak Hours ────────────────────────────── */
+
+.peak-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.peak-item:last-child {
+  border-bottom: none;
+}
+
+.peak-hour {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.peak-count {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── QR Section ────────────────────────────── */
+
+.qr-section {
+  text-align: center;
+  padding: 12px 0;
+}
+
+.qr-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 10px;
+  font-weight: 400;
+}
+
+#qr-code {
+  display: inline-block;
+  padding: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+/* ── Traffic Lights ─────────────────────────── */
+
+.tl-icon {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.tl-dot {
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ── Signal Intelligence ───────────────────── */
+
 .summary-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 14px;
+  border-radius: 12px;
+  padding: 16px;
+  transition: border-color 0.2s ease;
 }
+
+.summary-card:hover {
+  border-color: var(--border-hover);
+}
+
 .summary-problem,
 .summary-solution {
-  padding: 10px 0;
+  padding: 12px 0;
   border-bottom: 1px solid var(--border);
 }
+
+.summary-problem:last-child,
+.summary-solution:last-child {
+  border-bottom: none;
+}
+
 .problem-title,
 .solution-title {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 1.5px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
+
 .problem-title {
   color: var(--color-truck);
 }
+
 .solution-title {
   color: var(--color-bicycle);
 }
+
 .problem-stat {
   font-size: 11px;
   color: var(--text-secondary);
-  margin-bottom: 4px;
-  line-height: 1.4;
+  margin-bottom: 6px;
+  line-height: 1.5;
 }
+
 .problem-value {
   font-weight: 700;
   color: var(--color-truck);
-  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
 }
+
 .solution-value {
   font-weight: 700;
   color: var(--color-bicycle);
-  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
 }
 
 .summary-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
+  padding-top: 12px;
 }
+
 .summary-stat {
   text-align: center;
+  padding: 8px 4px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
 }
+
 .summary-value {
   display: block;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
-  color: var(--accent);
-  font-feature-settings: "tnum";
+  color: var(--accent-bright);
+  font-variant-numeric: tabular-nums;
 }
+
 .summary-label {
   font-size: 10px;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.06em;
+  font-weight: 500;
 }
+
+/* ── Recommendations ───────────────────────── */
 
 .recs-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+
 .rec-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px 12px;
+  border-radius: 12px;
+  padding: 12px 14px;
   position: relative;
+  transition: border-color 0.2s ease;
 }
+
+.rec-card:hover {
+  border-color: var(--border-hover);
+}
+
 .rec-badge {
   position: absolute;
-  top: 6px;
-  right: 8px;
+  top: 8px;
+  right: 10px;
   font-size: 8px;
   font-weight: 700;
   color: var(--color-motor_bike);
-  background: rgba(245, 158, 11, 0.15);
-  padding: 2px 6px;
-  border-radius: 3px;
+  background: rgba(245, 158, 11, 0.12);
+  padding: 3px 8px;
+  border-radius: 6px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.2px;
+  font-family: 'Inter', sans-serif;
 }
+
 .rec-sensor {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
 }
+
 .rec-detail {
   font-size: 10px;
   color: var(--text-secondary);
-  margin-top: 2px;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
 }
+
 .rec-suggestion {
   font-size: 11px;
   color: var(--color-bicycle);
-  margin-top: 4px;
-  font-weight: 500;
+  margin-top: 6px;
+  font-weight: 600;
 }
+
 .model-disclaimer {
   font-size: 9px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-style: italic;
-  padding-top: 4px;
-}
-
-/* ── Scrollbar ──────────────────────────────── */
-
-#sidebar::-webkit-scrollbar {
-  width: 4px;
-}
-
-#sidebar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-#sidebar::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 2px;
-}
-
-/* ── Tab Bar ───────────────────────────────── */
-
-.tab-bar {
-  display: flex;
-  gap: 4px;
-  padding: 0 16px;
-  margin-bottom: 16px;
-}
-
-.tab-btn {
-  flex: 1;
-  padding: 8px 0;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.tab-btn:hover {
-  color: var(--text-primary);
-}
-
-.tab-btn.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-
-.tab-panel {
-  display: none;
-}
-
-.tab-panel.active {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  padding-top: 6px;
 }
 
 /* ── Loading Overlay ───────────────────────── */
@@ -735,13 +847,11 @@ body {
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: #0f1117;
+  background: var(--bg-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition:
-    opacity 0.6s,
-    visibility 0.6s;
+  transition: opacity 0.8s ease, visibility 0.8s ease;
 }
 
 #loading-overlay.hidden {
@@ -755,55 +865,68 @@ body {
 }
 
 .loading-logo {
-  margin-bottom: 16px;
-  animation: loading-spin 3s linear infinite;
+  margin-bottom: 24px;
+  animation: loading-pulse 2.5s ease-in-out infinite;
 }
 
-@keyframes loading-spin {
-  from {
-    transform: rotate(0deg);
+.loading-logo svg {
+  width: 64px;
+  height: 64px;
+  stroke: var(--accent-bright);
+  filter: drop-shadow(0 0 16px rgba(107, 181, 255, 0.3));
+}
+
+@keyframes loading-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
   }
-  to {
-    transform: rotate(360deg);
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
   }
 }
 
 .loading-title {
-  color: #e4e4e7;
-  font-size: 24px;
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  font-size: 28px;
   font-weight: 700;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
 }
 
 .loading-subtitle {
-  color: #9ca3af;
+  color: var(--text-secondary);
+  font-family: 'Inter', sans-serif;
   font-size: 13px;
-  margin-bottom: 20px;
+  font-weight: 400;
+  margin-bottom: 28px;
 }
 
 .loading-bar {
-  width: 200px;
+  width: 220px;
   height: 3px;
-  background: #2a2d37;
-  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
   overflow: hidden;
   margin: 0 auto;
 }
 
 .loading-bar-fill {
-  width: 30%;
+  width: 40%;
   height: 100%;
-  background: #3b82f6;
-  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), #22c55e);
+  border-radius: 3px;
   animation: loading-progress 2s ease-in-out infinite;
 }
 
 @keyframes loading-progress {
   0% {
-    transform: translateX(-100%);
+    transform: translateX(-120%);
   }
   100% {
-    transform: translateX(400%);
+    transform: translateX(300%);
   }
 }
 
@@ -817,17 +940,18 @@ body {
 .pulse-dot {
   width: 8px;
   height: 8px;
-  background: #3b82f6;
+  background: var(--accent);
   border-radius: 50%;
   position: absolute;
   top: 2px;
   left: 2px;
+  box-shadow: 0 0 6px rgba(74, 144, 217, 0.4);
 }
 
 .pulse-ring {
   width: 20px;
   height: 20px;
-  border: 2px solid #3b82f6;
+  border: 2px solid var(--accent);
   border-radius: 50%;
   position: absolute;
   top: -4px;
