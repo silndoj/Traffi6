@@ -1,10 +1,12 @@
 """
 simulation.py — Data-driven traffic simulation on real Karlsruhe road network.
 
-Vehicles drive along real OSMnx road edges with interpolated positions.
-Two layers of traffic:
-  1. Base traffic — permanent fleet that makes the city look alive
-  2. Sensor traffic — additional vehicles spawned/despawned based on real sensor data
+Two-layer architecture:
+  1. Base traffic (570 vehicles) — permanent fleet, always on roads, never despawned
+  2. Sensor traffic — additional vehicles modulated by real sensor data with:
+     - Rolling average (5-step window) to smooth volatile sensor swings
+     - Global despawn cap (max 15/tick) to prevent mass vanishing
+     - Boundary containment to keep vehicles on-screen
 """
 
 import math
@@ -18,13 +20,12 @@ import osmnx as ox
 # Karlsruhe city center
 CENTER_LAT = 49.00587
 CENTER_LON = 8.40162
-RADIUS_M = 3000
+RADIUS_M = 5000  # 5km radius — covers most of inner Karlsruhe
 
 # Meters per degree at Karlsruhe's latitude
 M_PER_DEG_LAT = 111_320.0
 M_PER_DEG_LON = 73_000.0
 
-# Speed in meters/second by vehicle type (frontend names)
 SPEED_MAP = {
     "car": 12.0,
     "truck": 8.0,
@@ -33,7 +34,6 @@ SPEED_MAP = {
     "foot": 1.5,
 }
 
-# Map CSV vehicle types -> frontend vehicle types
 VEHICLE_TYPE_MAP = {
     "car": "car",
     "motorbike": "motor_bike",
@@ -44,18 +44,26 @@ VEHICLE_TYPE_MAP = {
     "bicycle": "bicycle",
 }
 
-# Base traffic composition (permanent vehicles — always on the roads)
+# Base traffic — permanent vehicles that make the city alive
 BASE_TRAFFIC = [
-    ("car", 280),
-    ("truck", 30),
-    ("motor_bike", 50),
-    ("bicycle", 25),
-    ("foot", 15),
+    ("car", 400),
+    ("truck", 45),
+    ("motor_bike", 70),
+    ("bicycle", 35),
+    ("foot", 20),
 ]
 
-# Sensor data amplification (sensors count vehicles passing per minute,
-# but we want vehicles present in the area — multiply to fill the gaps)
-SENSOR_AMPLIFIER = 3
+# Sensor data amplification (reduced from 3 to 2 — base traffic already fills the map)
+SENSOR_AMPLIFIER = 2
+
+# Rolling average window for smoothing sensor targets
+HISTORY_WINDOW = 5
+
+# Global despawn cap — max vehicles removed per tick across ALL buckets
+MAX_TOTAL_DESPAWN_PER_TICK = 15
+
+# Boundary containment radius (meters) — beyond this, vehicles pushed toward center
+BOUNDARY_RADIUS_M = 3500
 
 
 def _latlon_distance_m(lat1, lon1, lat2, lon2):
@@ -71,9 +79,8 @@ class RoadNetwork:
         self.nodes = {}
         self.edges = defaultdict(list)
         self._weights = {}
-        self._central_nodes = []
 
-        # pickle is safe here — we only load files WE created from OSMnx data
+        # pickle is safe here — we only load our own OSMnx-generated cache
         if os.path.exists(cache_path):
             print(f"Loading cached road graph from {cache_path}...")
             with open(cache_path, "rb") as f:
@@ -97,21 +104,20 @@ class RoadNetwork:
 
         self._compute_weights()
 
-        # Pre-compute lists of connected nodes (exclude dead ends and isolates)
         self._connected_nodes = [
             nid for nid in self.nodes if len(self.edges.get(nid, [])) >= 2
         ]
-        # Central nodes (within 1.5km of center) for spawning base traffic
         self._central_nodes = [
             nid for nid in self._connected_nodes
-            if _latlon_distance_m(CENTER_LAT, CENTER_LON, *self.nodes[nid]) < 1500
+            if _latlon_distance_m(CENTER_LAT, CENTER_LON, *self.nodes[nid]) < 2000
         ]
         if not self._central_nodes:
             self._central_nodes = self._connected_nodes
 
         print(f"Road network ready: {len(self.nodes)} nodes, "
               f"{sum(len(v) for v in self.edges.values()) // 2} edges, "
-              f"{len(self._central_nodes)} central nodes")
+              f"{len(self._central_nodes)} central, "
+              f"{len(self._connected_nodes)} connected")
 
     def _compute_weights(self):
         max_dist = 0.0
@@ -179,8 +185,8 @@ class Vehicle:
     def _pick_next_target(self):
         neighbors = self._net.neighbors_of(self.target_node)
         if not neighbors:
-            # Dead end — teleport to a random connected node to stay on roads
-            new_node = self._net.random_connected_node()
+            # Dead end — teleport to a random CENTRAL node (not edge)
+            new_node = self._net.random_central_node()
             self.current_node = new_node
             self.target_node = new_node
             lat, lon = self._net.position_of(new_node)
@@ -195,6 +201,17 @@ class Vehicle:
             candidates = neighbors
 
         weights = [self._net.weight_of(n) for n in candidates]
+
+        # Boundary containment: if far from center, strongly prefer inward movement
+        dist_from_center = _latlon_distance_m(CENTER_LAT, CENTER_LON, self.x, self.y)
+        if dist_from_center > BOUNDARY_RADIUS_M:
+            boost = 1.0 + (dist_from_center - BOUNDARY_RADIUS_M) / 300
+            for i, n in enumerate(candidates):
+                n_lat, n_lon = self._net.position_of(n)
+                n_dist = _latlon_distance_m(CENTER_LAT, CENTER_LON, n_lat, n_lon)
+                if n_dist < dist_from_center:
+                    weights[i] *= boost
+
         self.current_node = self.target_node
         self.target_node = random.choices(candidates, weights=weights, k=1)[0]
         self.progress = 0.0
@@ -223,7 +240,7 @@ class Vehicle:
 
 
 class TrafficSimulation:
-    """Data-driven simulation with base traffic + sensor-modulated traffic."""
+    """Data-driven simulation with base traffic + smoothed sensor modulation."""
 
     def __init__(self, sensor_positions):
         self.road_network = RoadNetwork()
@@ -238,21 +255,19 @@ class TrafficSimulation:
         # Sensor-driven vehicle tracking
         self._bucket = defaultdict(list)
         self._targets = defaultdict(int)
-        self._max_change_per_tick = 5
+        self._history = defaultdict(list)  # rolling average window
 
-        # Base traffic — permanent vehicles that make the city alive
+        # Base traffic — permanent vehicles
         self._base_vehicle_ids = set()
         self._spawn_base_traffic()
 
     def _spawn_base_traffic(self):
-        """Spawn the permanent base fleet distributed across the road network."""
         for vehicle_type, base_count in BASE_TRAFFIC:
             for _ in range(base_count):
                 vid = self._next_id
                 self._next_id += 1
                 node = self.road_network.random_connected_node()
                 v = Vehicle(vid, vehicle_type, self.road_network, node)
-                # Randomize starting progress so they don't all start at nodes
                 v.progress = random.random()
                 if v._edge_length > 0:
                     lat1, lon1 = self.road_network.position_of(v.current_node)
@@ -262,13 +277,12 @@ class TrafficSimulation:
                 self._vehicles[vid] = v
                 self._base_vehicle_ids.add(vid)
 
-        print(f"[sim] Base traffic: {len(self._base_vehicle_ids)} vehicles spawned")
+        print(f"[sim] Base traffic: {len(self._base_vehicle_ids)} vehicles")
 
     def _spawn(self, sensor_id, vehicle_type):
         vid = self._next_id
         self._next_id += 1
         node = self._sensor_nodes[sensor_id]
-        # Spawn near the sensor node — pick a random neighbor for variety
         neighbors = self.road_network.neighbors_of(node)
         start = random.choice(neighbors) if neighbors else node
         v = Vehicle(vid, vehicle_type, self.road_network, start)
@@ -280,7 +294,7 @@ class TrafficSimulation:
         key = (sensor_id, vehicle_type)
         bucket = self._bucket[key]
         if not bucket or count <= 0:
-            return
+            return 0
 
         sensor_node = self._sensor_nodes[sensor_id]
         slat, slon = self.road_network.position_of(sensor_node)
@@ -302,24 +316,44 @@ class TrafficSimulation:
             else:
                 new_bucket.append(vid)
         self._bucket[key] = new_bucket
+        return removed
 
     def update_from_data(self, readings):
-        """Set target vehicle counts from sensor readings (amplified by 3x)."""
+        """Update sensor targets using rolling average for smoothing."""
         for sensor_id, pairs in readings.items():
             if sensor_id not in self._sensor_nodes:
                 continue
-            existing_types = {k[1] for k in self._targets if k[0] == sensor_id}
-            for t in existing_types:
-                self._targets[(sensor_id, t)] = 0
+            # Reset this sensor's types that are no longer reported
+            existing_types = {k[1] for k in self._history if k[0] == sensor_id}
+            reported_types = set()
             for raw_type, count in pairs:
                 mapped = VEHICLE_TYPE_MAP.get(raw_type, raw_type)
-                self._targets[(sensor_id, mapped)] += count * SENSOR_AMPLIFIER
+                reported_types.add(mapped)
+                key = (sensor_id, mapped)
+                self._history[key].append(count * SENSOR_AMPLIFIER)
+                if len(self._history[key]) > HISTORY_WINDOW:
+                    self._history[key].pop(0)
+                # Target = average of rolling window
+                self._targets[key] = max(0, int(
+                    sum(self._history[key]) / len(self._history[key])
+                ))
+            # For types this sensor no longer reports, push a 0 into history
+            for t in existing_types - reported_types:
+                key = (sensor_id, t)
+                self._history[key].append(0)
+                if len(self._history[key]) > HISTORY_WINDOW:
+                    self._history[key].pop(0)
+                self._targets[key] = max(0, int(
+                    sum(self._history[key]) / len(self._history[key])
+                ))
 
     def _apply_gradual_changes(self):
+        """Spawn freely, despawn with global cap to prevent mass vanishing."""
         all_keys = set(self._targets.keys()) | set(self._bucket.keys())
+
+        # Phase 1: Process spawns (no global limit — adding vehicles is good)
         for key in all_keys:
             want = self._targets.get(key, 0)
-            # Clean bucket — never touch base vehicles
             self._bucket[key] = [
                 vid for vid in self._bucket[key]
                 if vid in self._vehicles and vid not in self._base_vehicle_ids
@@ -328,15 +362,31 @@ class TrafficSimulation:
             sensor_id, vehicle_type = key
 
             if have < want:
-                to_spawn = min(want - have, self._max_change_per_tick)
+                to_spawn = min(want - have, 5)
                 for _ in range(to_spawn):
                     self._spawn(sensor_id, vehicle_type)
-            elif have > want:
-                to_despawn = min(have - want, self._max_change_per_tick)
-                self._despawn(sensor_id, vehicle_type, to_despawn)
+
+        # Phase 2: Process despawns with GLOBAL cap
+        total_despawned = 0
+        for key in all_keys:
+            if total_despawned >= MAX_TOTAL_DESPAWN_PER_TICK:
+                break
+            want = self._targets.get(key, 0)
+            self._bucket[key] = [
+                vid for vid in self._bucket[key]
+                if vid in self._vehicles and vid not in self._base_vehicle_ids
+            ]
+            have = len(self._bucket[key])
+            sensor_id, vehicle_type = key
+
+            if have > want:
+                allowed = MAX_TOTAL_DESPAWN_PER_TICK - total_despawned
+                to_despawn = min(have - want, 2, allowed)
+                if to_despawn > 0:
+                    removed = self._despawn(sensor_id, vehicle_type, to_despawn)
+                    total_despawned += removed
 
     def tick(self, dt):
-        """Advance all vehicles and gradually adjust sensor-driven counts."""
         self._apply_gradual_changes()
         for v in self._vehicles.values():
             v.move(dt)
