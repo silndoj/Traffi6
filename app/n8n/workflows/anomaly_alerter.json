@@ -1,0 +1,213 @@
+{
+  "name": "Traffic Anomaly Alerter",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 10 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8000/api/stats",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "fetch-stats",
+      "name": "Fetch Traffic Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const stats = $input.first().json;\nconst anomalies = [];\nconst now = new Date();\n\n// Check by_type for volume anomalies using simple threshold\n// In production, compute mean/stddev from historical data\nconst byType = stats.by_type || {};\nconst counts = Object.values(byType).filter(v => typeof v === 'number' && v > 0);\n\nif (counts.length > 0) {\n  const mean = counts.reduce((a, b) => a + b, 0) / counts.length;\n  const variance = counts.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / counts.length;\n  const stddev = Math.sqrt(variance);\n  const threshold = mean + 2 * stddev;\n\n  for (const [vehicleType, count] of Object.entries(byType)) {\n    if (typeof count === 'number' && count > threshold) {\n      anomalies.push({\n        type: 'volume_spike',\n        vehicle_type: vehicleType,\n        count,\n        threshold: Math.round(threshold),\n        mean: Math.round(mean),\n        stddev: Math.round(stddev),\n        message: `${vehicleType} count (${count}) exceeds 2\u03c3 threshold (${Math.round(threshold)})`\n      });\n    }\n  }\n}\n\n// Check total volume\nconst totalVehicles = stats.total_vehicles || 0;\nif (totalVehicles === 0) {\n  anomalies.push({\n    type: 'no_data',\n    message: 'No traffic data available - sensors may be offline',\n    timestamp: now.toISOString()\n  });\n}\n\nreturn [{\n  json: {\n    has_anomalies: anomalies.length > 0,\n    anomaly_count: anomalies.length,\n    anomalies,\n    checked_at: now.toISOString(),\n    total_vehicles: totalVehicles\n  }\n}];"
+      },
+      "id": "detect-anomalies",
+      "name": "Detect Anomalies",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-anomaly",
+              "leftValue": "={{ $json.has_anomalies }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "has-anomalies",
+      "name": "Anomaly Detected?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "alert-title",
+              "name": "title",
+              "value": "=Traffic Anomaly Alert - {{ $json.anomaly_count }} issue(s) detected",
+              "type": "string"
+            },
+            {
+              "id": "alert-body",
+              "name": "body",
+              "value": "={{ $json.anomalies.map(a => '- ' + a.message).join('\\n') }}",
+              "type": "string"
+            },
+            {
+              "id": "alert-severity",
+              "name": "severity",
+              "value": "={{ $json.anomaly_count > 3 ? 'critical' : 'warning' }}",
+              "type": "string"
+            },
+            {
+              "id": "alert-timestamp",
+              "name": "checked_at",
+              "value": "={{ $json.checked_at }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "format-alert",
+      "name": "Format Alert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [880, -60]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://your-webhook-url.example.com/alerts",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ title: $json.title, body: $json.body, severity: $json.severity, checked_at: $json.checked_at }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "send-webhook",
+      "name": "Send Alert Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, -60]
+    },
+    {
+      "parameters": {
+        "jsCode": "console.log('No anomalies detected at', new Date().toISOString());\nreturn [{ json: { status: 'ok', message: 'No anomalies detected', checked_at: new Date().toISOString() } }];"
+      },
+      "id": "log-ok",
+      "name": "Log All Clear",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 120]
+    }
+  ],
+  "connections": {
+    "Every 10 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Fetch Traffic Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Traffic Stats": {
+      "main": [
+        [
+          {
+            "node": "Detect Anomalies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Anomalies": {
+      "main": [
+        [
+          {
+            "node": "Anomaly Detected?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anomaly Detected?": {
+      "main": [
+        [
+          {
+            "node": "Format Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log All Clear",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Alert Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "traffic"
+    },
+    {
+      "name": "alerting"
+    }
+  ]
+}
