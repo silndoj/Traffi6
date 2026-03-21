@@ -14,12 +14,21 @@ const state = {
 
 const VEHICLE_TYPES = ["car", "truck", "motor_bike", "bicycle", "foot"];
 
+const ICON_SIZES = {
+  car: [28, 28],
+  truck: [32, 28],
+  motor_bike: [28, 28],
+  bicycle: [26, 26],
+  foot: [22, 22],
+};
+
 const ICON_CACHE = {};
 VEHICLE_TYPES.forEach((type) => {
+  const size = ICON_SIZES[type] || [26, 26];
   ICON_CACHE[type] = L.icon({
     iconUrl: `assets/${type}.png`,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
+    iconSize: size,
+    iconAnchor: [size[0] / 2, size[1] / 2],
   });
 });
 
