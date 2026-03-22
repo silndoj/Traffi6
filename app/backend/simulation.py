@@ -352,6 +352,9 @@ class TrafficSimulation:
         lights = []
         for nid, tl in self._traffic_lights.items():
             # Skip lights outside visible area
+            # Only show major intersections (5+ connections) to reduce frontend DOM load
+            if tl["degree"] < 5:
+                continue
             if abs(tl["lat"] - CENTER_LAT) > 0.035 or abs(tl["lon"] - CENTER_LON) > 0.05:
                 continue
 

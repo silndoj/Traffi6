@@ -909,11 +909,22 @@ function toggleCorridors() {
         if (coords.length < 2) return;
 
         var color = colors[idx % colors.length];
+        // Glow underlay for visibility
+        var glow = L.polyline(coords, {
+          color: color,
+          weight: 10,
+          opacity: 0.15,
+          lineCap: "round",
+        });
+        state.corridorLayer.addLayer(glow);
+
+        // Main dashed line
         var line = L.polyline(coords, {
           color: color,
-          weight: 4,
-          opacity: 0.8,
-          dashArray: "10 8",
+          weight: 3,
+          opacity: 0.9,
+          dashArray: "8 6",
+          className: "corridor-line-animated",
         });
 
         line.bindPopup(buildCorridorPopup(corridor, idx), { maxWidth: 300 });
