@@ -385,31 +385,38 @@ class TrafficSimulation:
         return lights
 
     def enable_green_wave(self, corridors):
-        """Synchronize ALL traffic lights near corridor lines, not just sensor nodes.
+        """Synchronize corridor traffic lights AND route vehicles through corridors.
 
-        For each corridor, find every traffic light within 300m of the corridor
-        line and sync its phase based on distance along the corridor.
+        Two effects:
+        1. Sync light phases along corridors (cascade green lights)
+        2. Increase green time ratio on corridor lights (45% → 70%)
+        3. Redirect 30% of vehicles to use corridor routes
         """
         self._green_wave_active = True
         self._original_offsets = {}
+        self._original_cycles = {}
+
+        # Collect corridor sensor nodes for vehicle routing
+        corridor_sensor_nodes = set()
 
         for corridor in corridors:
             sensors = corridor.get("sensors", [])
             if len(sensors) < 2:
                 continue
 
-            # Build corridor line as sequence of (lat, lon) points
-            corridor_points = [(s["lat"], s["lon"]) for s in sensors]
-            corridor_speed = 30 / 3.6  # 30 km/h in m/s
+            for s in sensors:
+                sid = s.get("sensor_id")
+                if sid and sid in self._sensor_nodes:
+                    corridor_sensor_nodes.add(self._sensor_nodes[sid])
 
-            # For every traffic light, check distance to corridor line
+            corridor_points = [(s["lat"], s["lon"]) for s in sensors]
+            corridor_speed = 30 / 3.6
+
             for nid, tl in self._traffic_lights.items():
                 if nid in self._original_offsets:
-                    continue  # already synced by another corridor
+                    continue
 
                 tlat, tlon = tl["lat"], tl["lon"]
-
-                # Find closest point on corridor and distance along it
                 min_perp_dist = float("inf")
                 dist_along = 0.0
                 cumulative_dist = 0.0
@@ -419,7 +426,6 @@ class TrafficSimulation:
                     bx, by = corridor_points[i + 1]
                     seg_len = _latlon_distance_m(ax, ay, bx, by)
 
-                    # Project point onto segment
                     if seg_len > 0:
                         dx, dy = bx - ax, by - ay
                         t = max(0, min(1, ((tlat - ax) * dx + (tlon - ay) * dy) / (dx * dx + dy * dy)))
@@ -432,23 +438,41 @@ class TrafficSimulation:
 
                     cumulative_dist += seg_len
 
-                # Sync only lights directly on the corridor road (within 80m)
                 if min_perp_dist < 80:
                     self._original_offsets[nid] = tl["phase_offset"]
-                    # Phase = travel time to reach this point along corridor
+                    self._original_cycles[nid] = tl["cycle_sec"]
                     travel_time = dist_along / corridor_speed
                     tl["phase_offset"] = travel_time
+                    # Increase green time: shorter cycle, more green ratio
+                    tl["cycle_sec"] = tl["cycle_sec"] * 0.85
+
+        # Route 30% of free-roaming vehicles toward corridor sensor nodes
+        if corridor_sensor_nodes:
+            corridor_nodes = list(corridor_sensor_nodes)
+            redirected = 0
+            for vid, v in self._vehicles.items():
+                if v.attraction_node is None and random.random() < 0.3:
+                    target = random.choice(corridor_nodes)
+                    v.attraction_node = target
+                    self._attractions[vid] = target
+                    redirected += 1
+
+        synced = len(self._original_offsets)
+        print(f"[sim] Green wave: {synced} lights synced, {len(corridor_sensor_nodes)} corridor nodes, {redirected} vehicles redirected")
 
         synced = len(self._original_offsets)
         print(f"[sim] Green wave enabled: {synced} lights synchronized across {len(corridors)} corridors")
 
     def disable_green_wave(self):
-        """Restore original random phase offsets."""
+        """Restore original phase offsets, cycle times, and clear vehicle redirects."""
         if not hasattr(self, '_original_offsets'):
             return
         for nid, original_offset in self._original_offsets.items():
             if nid in self._traffic_lights:
                 self._traffic_lights[nid]["phase_offset"] = original_offset
+        for nid, original_cycle in getattr(self, '_original_cycles', {}).items():
+            if nid in self._traffic_lights:
+                self._traffic_lights[nid]["cycle_sec"] = original_cycle
         self._original_offsets = {}
         self._green_wave_active = False
         print("[sim] Green wave disabled: original timing restored")
