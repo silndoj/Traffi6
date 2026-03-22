@@ -4,77 +4,72 @@
 ```bash
 cd app/backend && python3 server.py
 ```
-Open http://localhost:8000 in Chrome (fullscreen, F11)
+Open http://localhost:8000 in Chrome (fullscreen F11)
 
 ---
 
-## ACT 1: The Living City (45 seconds)
+## ACT 1: The Living City (30 seconds)
 
-**What to show:** Live tab — 750 vehicles driving on real Karlsruhe roads
+**What the jury sees immediately:**
+- Loading screen → fades to dark map with 750 vehicles driving
+- Sidebar shows: "THE PROBLEM — 86% of intersections need adaptive timing"
+- Stopped at Red counter: ~170 (23%)
+- Signal Efficiency: ~77/100
 
-**What to say:**
-"This is PulseTraffic — a smart traffic signal optimization platform for Karlsruhe. What you're seeing is a real-time simulation of 750 vehicles driving on 3,914 actual road intersections from OpenStreetMap. The simulation is powered by 589,000 real IoT sensor readings from 50 traffic sensors collected over 6 days."
+**Say:**
+"This is PulseTraffic. You're looking at 750 vehicles driving on 3,914 real Karlsruhe road intersections. Every vehicle obeys traffic lights — stopping at red, queuing, resuming at green. Right now, 170 vehicles — 23% — are stuck at unoptimized signals."
 
-**Point out:**
-- Vehicles moving along actual roads
-- Traffic lights cycling green/yellow/red at intersections
-- Vehicles stopping and queuing at red lights
-- The "Stopped at Red" counter: "Right now, 160 vehicles — 21% — are stopped at red lights."
-- Speed up to 10x briefly to show time progression
+**Point at the efficiency score:** "Signal efficiency: 77 out of 100."
 
 ---
 
-## ACT 2: The Problem (45 seconds)
+## ACT 2: The Data Behind It (30 seconds)
 
-**Click:** Analysis tab
+**Point at the sidebar data proof:**
 
-**What to say:**
-"Here's the problem we discovered. After analyzing all 589,000 sensor readings, we found that 86% of Karlsruhe's monitored intersections have traffic too unpredictable for fixed signal timing. Peak hour at 5pm sees 2x more traffic than off-peak — but the signals don't adapt."
-
-**Point out:**
-- "THE PROBLEM" card with real data stats
-- Peak hours: 17:00 (241 vehicles), 16:00, 09:00
-- Anomaly alerts if they're showing
-- Click "Analysis" button to show colored intersection circles
-- Click one circle to show the sparkline hourly profile
+**Say:**
+"This isn't a simulation pulled from thin air. We analyzed 304,018 real IoT sensor readings from 50 traffic sensors across 6 days. The data proves that 86% of Karlsruhe's intersections have traffic too unpredictable for fixed signal timing. Peak hour at 5pm sees 241 vehicles per minute — but the signals don't adapt."
 
 ---
 
 ## ACT 3: The Solution — Green Wave (60 seconds)
 
-**This is the hero moment.**
+**THIS IS THE HERO MOMENT.**
 
-**Click:** "Green Wave" button
+**Say:** "Here's our solution."
 
-**What to say:**
-"Our solution: Green Wave coordination. We identified 8 corridors where traffic lights can be synchronized to create green waves — timed so a driver hitting one green light hits all subsequent greens without stopping."
+**Click the ENABLE GREEN WAVE button.**
 
-**Point out on the map:**
-- Animated dashed corridor lines following real roads
-- Click a corridor to show timing details
+**Wait 5 seconds for the effect to build.**
 
-**Now switch to Live tab:**
+**Say:** "We identified 5 corridors — each 2 to 3 kilometers — where traffic lights can be synchronized into green waves. A driver hitting one green light hits all subsequent greens without stopping."
 
-**What to say:**
-"Watch the Stopped at Red counter. Before Green Wave: 160 stopped, 21%. Now with Green Wave active..."
+**Point at the map:** corridors appear as animated dashed lines.
 
-**The counter should drop to ~137, 18%.**
+**Point at the sidebar:** "Watch the numbers."
 
-"13% fewer vehicles stopped — 977 vehicle-hours saved daily across the city."
+- Stopped at Red drops: 170 → ~150
+- Efficiency score rises: 77 → ~80
+- Impact section slides in: "13% fewer vehicles stopped"
+- "977 vehicle-hours saved daily"
+
+**Say:** "13% fewer vehicles stopped. 977 vehicle-hours saved across the city, every single day. And this is with just 5 corridors optimized."
 
 ---
 
-## ACT 4: Mobile & Wrap-up (30 seconds)
+## ACT 4: Heatmap + Mobile (30 seconds)
 
-**Click:** Mobile tab, show QR code
+**Click Heatmap button** in the footer.
 
-**What to say:**
-"Citizens can scan this QR code to get a live traffic card on their phone — see congestion level, active alerts, and sensor status in real time."
+**Say:** "The heatmap shows where traffic concentrates in real time. Blue is light, red is heavy congestion."
 
-**Click:** Heatmap toggle in Analysis tab
+**Point at Mobile button:** "Citizens can access live traffic status on their phones."
 
-**What to say:**
-"The heatmap shows where traffic concentrates. All of this is powered by real IoT sensor data — not simulated, not estimated. Real measurements from real roads."
+---
 
-**Final statement:**
-"PulseTraffic: data-driven signal optimization that turns 589,000 sensor readings into actionable intelligence. 86% of intersections need adaptive timing. We have the proof, and the prototype to deliver it."
+## ACT 5: Closing (30 seconds)
+
+**Say:**
+"PulseTraffic: 304,000 sensor readings prove the problem. 5 green-wave corridors demonstrate the solution. 13% reduction in stopped traffic — with real data, real roads, and a system ready to scale to every intersection in the city."
+
+**Speed up to 50x** for dramatic time-lapse effect as you finish.
