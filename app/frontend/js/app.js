@@ -67,8 +67,18 @@ function formatTimestamp(ts) {
   if (isNaN(d.getTime())) return ts;
   var day = d.getDate();
   var months = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
   ];
   var month = months[d.getMonth()];
   var year = d.getFullYear();
@@ -83,8 +93,18 @@ function formatTimeShort(ts) {
   if (isNaN(d.getTime())) return ts;
   var day = d.getDate();
   var months = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
   ];
   return day + " " + months[d.getMonth()] + " " + d.getFullYear();
 }
@@ -325,7 +345,10 @@ function updateTimeline(currentStep, totalSteps) {
     dom.timelineThumb.style.left = pct + "%";
   }
   dom.stepCounter.textContent =
-    "Step " + formatNumber(currentStep) + " / " + formatNumber(state.timeline.totalSteps);
+    "Step " +
+    formatNumber(currentStep) +
+    " / " +
+    formatNumber(state.timeline.totalSteps);
 }
 
 // ── WebSocket ───────────────────────────────────────────────────────────────
@@ -333,7 +356,8 @@ function updateTimeline(currentStep, totalSteps) {
 function connectWebSocket() {
   var protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   var wsPort = window.location.port ? ":" + window.location.port : "";
-  var wsUrl = protocol + "//" + window.location.hostname + wsPort + "/ws/traffic";
+  var wsUrl =
+    protocol + "//" + window.location.hostname + wsPort + "/ws/traffic";
 
   dom.wsStatusDot.classList.remove("connected");
   dom.wsStatusText.textContent = "Connecting...";
@@ -399,16 +423,49 @@ function connectWebSocket() {
           state.baselineStopped = data.stopped;
         } else {
           // Update "after" count
-          animateCount(document.getElementById("stopped-count-after"), data.stopped);
+          animateCount(
+            document.getElementById("stopped-count-after"),
+            data.stopped,
+          );
           var pctAfter = Math.round((data.stopped / 750) * 100);
-          document.getElementById("stopped-pct-after").textContent = pctAfter + "%";
+          document.getElementById("stopped-pct-after").textContent =
+            pctAfter + "%";
           // Compute improvement
           if (state.baselineStopped > 0) {
             var improvementPct = Math.round(
-              ((state.baselineStopped - data.stopped) / state.baselineStopped) * 100
+              ((state.baselineStopped - data.stopped) / state.baselineStopped) *
+                100,
             );
-            document.getElementById("improvement-pct").textContent = improvementPct + "%";
+            document.getElementById("improvement-pct").textContent =
+              improvementPct + "%";
           }
+        }
+
+        // Efficiency score: composite metric (0-100)
+        // 100 = all moving, 0 = all stopped
+        var movingPct = Math.round((1 - data.stopped / 750) * 100);
+        var score = Math.max(0, Math.min(100, movingPct));
+        var scoreEl = document.getElementById("efficiency-score");
+        var barEl = document.getElementById("efficiency-bar-fill");
+        var trendEl = document.getElementById("efficiency-trend");
+        if (scoreEl) animateCount(scoreEl, score);
+        if (barEl) {
+          barEl.style.width = score + "%";
+          barEl.style.background =
+            score > 75
+              ? "var(--color-bicycle)"
+              : score > 50
+                ? "var(--color-motor_bike)"
+                : "var(--color-truck)";
+        }
+        if (trendEl && state.greenWaveActive && state.baselineStopped > 0) {
+          var baseScore = Math.round((1 - state.baselineStopped / 750) * 100);
+          var diff = score - baseScore;
+          trendEl.textContent = (diff >= 0 ? "+" : "") + diff + "pts";
+          trendEl.className =
+            "efficiency-trend " + (diff > 0 ? "positive" : "negative");
+        } else if (trendEl) {
+          trendEl.textContent = "";
         }
       }
     } catch (e) {
@@ -534,13 +591,16 @@ function initControls() {
   // Speed buttons (both in sidebar header and controls bar)
   document.querySelectorAll(".speed-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      document
-        .querySelectorAll(".speed-btn")
-        .forEach(function (b) { b.classList.remove("active"); });
+      document.querySelectorAll(".speed-btn").forEach(function (b) {
+        b.classList.remove("active");
+      });
       // Activate all buttons with same speed value
       var speed = btn.dataset.speed;
-      document.querySelectorAll('.speed-btn[data-speed="' + speed + '"]')
-        .forEach(function (b) { b.classList.add("active"); });
+      document
+        .querySelectorAll('.speed-btn[data-speed="' + speed + '"]')
+        .forEach(function (b) {
+          b.classList.add("active");
+        });
       state.speed = parseInt(speed, 10);
       wsSend({ speed: state.speed });
     });
@@ -556,70 +616,84 @@ function initControls() {
   });
 
   // Hero button — Green Wave toggle
-  document.getElementById("btn-green-wave").addEventListener("click", function () {
-    state.greenWaveActive = !state.greenWaveActive;
-    this.classList.toggle("active");
-    wsSend({ green_wave: state.greenWaveActive });
+  document
+    .getElementById("btn-green-wave")
+    .addEventListener("click", function () {
+      state.greenWaveActive = !state.greenWaveActive;
+      this.classList.toggle("active");
+      wsSend({ green_wave: state.greenWaveActive });
 
-    // Show/hide impact section with animation
-    var impactSection = document.getElementById("impact-section");
-    impactSection.style.display = state.greenWaveActive ? "block" : "none";
+      // Show/hide impact section with animation
+      var impactSection = document.getElementById("impact-section");
+      impactSection.style.display = state.greenWaveActive ? "block" : "none";
 
-    // Store baseline stopped count for comparison
-    if (state.greenWaveActive) {
-      state.baselineStopped =
-        parseInt(document.getElementById("stopped-count").textContent.replace(/\D/g, "")) || 0;
-    }
-
-    // Update button text
-    this.querySelector(".hero-btn-title").textContent = state.greenWaveActive
-      ? "DISABLE GREEN WAVE"
-      : "ENABLE GREEN WAVE";
-    this.querySelector(".hero-btn-icon").textContent = state.greenWaveActive
-      ? "\u23F9"
-      : "\u25B6";
-
-    // Toggle corridor lines on map
-    if (state.greenWaveActive && state.corridorData) {
-      if (!state.corridorLayer) {
-        state.corridorLayer = L.layerGroup();
-        var colors = [
-          "#3b82f6", "#22c55e", "#f59e0b", "#a855f7",
-          "#ef4444", "#06b6d4", "#ec4899", "#84cc16",
-        ];
-
-        state.corridorData.forEach(function (corridor, idx) {
-          var coords = (corridor.path || corridor.sensors).map(function (s) {
-            return [s.lat, s.lon];
-          });
-          if (coords.length < 2) return;
-
-          var color = colors[idx % colors.length];
-          var glow = L.polyline(coords, {
-            color: color,
-            weight: 10,
-            opacity: 0.15,
-            lineCap: "round",
-          });
-          state.corridorLayer.addLayer(glow);
-
-          var line = L.polyline(coords, {
-            color: color,
-            weight: 3,
-            opacity: 0.9,
-            dashArray: "8 6",
-            className: "corridor-line-animated",
-          });
-
-          line.bindPopup(buildCorridorPopup(corridor, idx), { maxWidth: 300 });
-          state.corridorLayer.addLayer(line);
-        });
+      // Store baseline stopped count for comparison
+      if (state.greenWaveActive) {
+        state.baselineStopped =
+          parseInt(
+            document
+              .getElementById("stopped-count")
+              .textContent.replace(/\D/g, ""),
+          ) || 0;
       }
-      state.corridorLayer.addTo(state.map);
-    } else if (state.corridorLayer) {
-      state.map.removeLayer(state.corridorLayer);
-    }
-  });
+
+      // Update button text
+      this.querySelector(".hero-btn-title").textContent = state.greenWaveActive
+        ? "DISABLE GREEN WAVE"
+        : "ENABLE GREEN WAVE";
+      this.querySelector(".hero-btn-icon").textContent = state.greenWaveActive
+        ? "\u23F9"
+        : "\u25B6";
+
+      // Toggle corridor lines on map
+      if (state.greenWaveActive && state.corridorData) {
+        if (!state.corridorLayer) {
+          state.corridorLayer = L.layerGroup();
+          var colors = [
+            "#3b82f6",
+            "#22c55e",
+            "#f59e0b",
+            "#a855f7",
+            "#ef4444",
+            "#06b6d4",
+            "#ec4899",
+            "#84cc16",
+          ];
+
+          state.corridorData.forEach(function (corridor, idx) {
+            var coords = (corridor.path || corridor.sensors).map(function (s) {
+              return [s.lat, s.lon];
+            });
+            if (coords.length < 2) return;
+
+            var color = colors[idx % colors.length];
+            var glow = L.polyline(coords, {
+              color: color,
+              weight: 10,
+              opacity: 0.15,
+              lineCap: "round",
+            });
+            state.corridorLayer.addLayer(glow);
+
+            var line = L.polyline(coords, {
+              color: color,
+              weight: 3,
+              opacity: 0.9,
+              dashArray: "8 6",
+              className: "corridor-line-animated",
+            });
+
+            line.bindPopup(buildCorridorPopup(corridor, idx), {
+              maxWidth: 300,
+            });
+            state.corridorLayer.addLayer(line);
+          });
+        }
+        state.corridorLayer.addTo(state.map);
+      } else if (state.corridorLayer) {
+        state.map.removeLayer(state.corridorLayer);
+      }
+    });
 }
 
 // ── Init ────────────────────────────────────────────────────────────────────
