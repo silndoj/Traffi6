@@ -165,7 +165,7 @@ _current_ws_step = 0
 # FastAPI app
 # ---------------------------------------------------------------------------
 
-app = FastAPI(title="Traffi6 — Karlsruhe Traffic Replay")
+app = FastAPI(title="PulseTraffic — Smart Signal Optimization")
 
 app.add_middleware(
     CORSMiddleware,
