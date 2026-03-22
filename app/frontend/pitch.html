@@ -1,0 +1,64 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>PulseTraffic — Pitch</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Inter,system-ui,sans-serif;background:#0a0f1e;color:#e8ecf4;padding:60px;max-width:900px;margin:0 auto}
+h1{font-size:48px;margin-bottom:8px}h2{font-size:28px;color:#4a90d9;margin:40px 0 16px;border-bottom:2px solid #1a1f4e;padding-bottom:8px}
+h3{font-size:20px;color:#6bb5ff;margin:24px 0 8px}.sub{color:#8892a8;font-size:20px;margin-bottom:40px}
+p{font-size:16px;line-height:1.7;color:#c0c8d8;margin-bottom:12px}
+.stat{display:inline-block;text-align:center;margin:16px 32px 16px 0}
+.stat-val{font-size:42px;font-weight:700;color:#6bb5ff;display:block}.stat-label{font-size:12px;color:#8892a8;text-transform:uppercase;letter-spacing:1px}
+.red{color:#ef4444}.green{color:#22c55e}.amber{color:#f59e0b}
+.box{background:rgba(20,25,45,0.6);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:24px;margin:16px 0}
+.tag{display:inline-block;background:rgba(74,144,217,0.15);color:#6bb5ff;padding:4px 12px;border-radius:6px;font-size:13px;margin:4px}
+@media print{body{background:white;color:#111}h1,h2,h3,.stat-val{color:#0a0f2e}.sub,.stat-label,p{color:#444}}
+</style></head><body>
+<h1>PulseTraffic</h1>
+<p class="sub">Smart Traffic Signal Optimization — Karlsruhe</p>
+
+<h2>The Problem</h2>
+<div class="box">
+<p><span class="red" style="font-size:32px;font-weight:700">86%</span> of Karlsruhe's monitored intersections have traffic too unpredictable for fixed signal timing.</p>
+<p>Peak hour (17:00) sees <strong>2x more traffic</strong> than off-peak — but signals never adapt.</p>
+</div>
+
+<h2>The Data</h2>
+<div class="stat"><span class="stat-val">304,018</span><span class="stat-label">Sensor Readings</span></div>
+<div class="stat"><span class="stat-val">50</span><span class="stat-label">IoT Sensors</span></div>
+<div class="stat"><span class="stat-val">6</span><span class="stat-label">Days of Data</span></div>
+<div class="stat"><span class="stat-val">3,914</span><span class="stat-label">Road Nodes (OSMnx)</span></div>
+
+<h2>The Solution: Green Wave</h2>
+<div class="box">
+<p>Synchronize traffic lights along <strong>5 corridors</strong> (2-3km each) so drivers hit consecutive green lights without stopping.</p>
+<p>A hero vehicle drives <strong>6.6km from Spassbecken to Heidesee</strong> on the shortest road, demonstrating the green wave in action.</p>
+</div>
+
+<h2>The Impact</h2>
+<div class="stat"><span class="stat-val green">17%</span><span class="stat-label">Fewer Vehicles Stopped</span></div>
+<div class="stat"><span class="stat-val green">977</span><span class="stat-label">Vehicle-Hours Saved Daily</span></div>
+<div class="stat"><span class="stat-val">750</span><span class="stat-label">Simulated Vehicles</span></div>
+
+<h2>Tech Stack</h2>
+<p>
+<span class="tag">Python / FastAPI</span>
+<span class="tag">WebSocket 10fps</span>
+<span class="tag">OSMnx Road Graph</span>
+<span class="tag">SQLite (304K rows)</span>
+<span class="tag">Leaflet.js Dark Map</span>
+<span class="tag">Dijkstra Routing</span>
+<span class="tag">Docker</span>
+<span class="tag">Real IoT Sensor Data</span>
+</p>
+
+<h2>How It Works</h2>
+<h3>1. Real Data → Database</h3>
+<p>304,018 sensor readings from 50 traffic sensors imported into SQLite. Vehicle types: car, motorbike, truck, bicycle.</p>
+<h3>2. Road Network Simulation</h3>
+<p>750 constant vehicles drive on 3,914 real Karlsruhe intersections (OSMnx). Traffic lights cycle at 749 intersections. Vehicles stop at red, queue, resume at green.</p>
+<h3>3. Green Wave Optimization</h3>
+<p>Dijkstra finds shortest road paths between high-traffic sensors. 5 corridors identified. Signal phases synchronized with travel-time offsets at 30km/h. 30% of vehicles rerouted to corridor roads.</p>
+<h3>4. Live Dashboard</h3>
+<p>WebSocket streams vehicle positions at 10fps. Narrative UI: Problem → Hero Metric → One-Click Solution → Before/After Impact.</p>
+
+<h2>Links</h2>
+<p><strong>Live Demo:</strong> <a href="https://57645ec1b28d8275-153-92-90-3.serveousercontent.com" style="color:#6bb5ff">https://57645ec1b28d8275-153-92-90-3.serveousercontent.com</a></p>
+<p><strong>GitHub:</strong> <a href="https://github.com/silndoj/Traffi6" style="color:#6bb5ff">github.com/silndoj/Traffi6</a></p>
+</body></html>
