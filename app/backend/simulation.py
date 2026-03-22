@@ -584,9 +584,13 @@ class TrafficSimulation:
 
             sensor_allocations = amplified
 
-        # Build list of all vehicle ids with their distance to each sensor
+        # When Green Wave is active, keep existing corridor-routed vehicles assigned
         all_vids = list(self._vehicles.keys())
         assigned = set()
+        if getattr(self, '_green_wave_active', False):
+            for vid in all_vids:
+                if self._attractions.get(vid) is not None:
+                    assigned.add(vid)
 
         for sensor_id, alloc in sensor_allocations:
             if alloc <= 0:
