@@ -210,15 +210,22 @@ class Vehicle:
         weights = [self._net.weight_of(n) for n in good]
 
         # Attraction-aware routing
+        # Threshold adapts to traffic intensity: quiet hours use wider radius
+        # so vehicles spread more evenly instead of clustering tightly
+        attraction_threshold = 300  # default: start circulating within 300m
+        if self._sim is not None:
+            intensity = getattr(self._sim, '_traffic_intensity', 5.0)
+            if intensity < 3:
+                attraction_threshold = 1000  # quiet hours: weaker attraction
         if self.attraction_node is not None:
             attr_lat, attr_lon = self._net.position_of(self.attraction_node)
             my_dist = _latlon_distance_m(attr_lat, attr_lon, self.x, self.y)
-            if my_dist > 500:
+            if my_dist > attraction_threshold:
                 for i, n in enumerate(good):
                     n_lat, n_lon = self._net.position_of(n)
                     n_dist = _latlon_distance_m(attr_lat, attr_lon, n_lat, n_lon)
                     if n_dist < my_dist:
-                        weights[i] *= 3.0
+                        weights[i] *= 5.0
 
         # Boundary containment
         dist_from_center = _latlon_distance_m(CENTER_LAT, CENTER_LON, self.x, self.y)
@@ -500,6 +507,11 @@ class TrafficSimulation:
                 self._vehicles[vid].attraction_node = None
             return
 
+        # Traffic intensity: avg vehicles per reporting sensor
+        reporting_sensors = max(1, len(sensor_totals))
+        traffic_intensity = grand_total / reporting_sensors
+        self._traffic_intensity = traffic_intensity
+
         # Sort sensors by count descending (busiest first)
         sorted_sensors = sorted(
             sensor_totals.items(), key=lambda kv: kv[1], reverse=True
@@ -517,6 +529,36 @@ class TrafficSimulation:
             alloc = max(0, min(alloc, POOL_SIZE - allocated_so_far))
             sensor_allocations.append((sensor_id, alloc))
             allocated_so_far += alloc
+
+        # Rush hour amplification: concentrate vehicles at top sensors
+        if traffic_intensity > 8 and len(sensor_allocations) >= 4:
+            # Amplify top 3 sensors by 1.5x, reduce bottom sensors proportionally
+            top_bonus = 0
+            amplified = []
+            for i, (sensor_id, alloc) in enumerate(sensor_allocations[:3]):
+                bonus = round(alloc * 0.5)
+                amplified.append((sensor_id, alloc + bonus))
+                top_bonus += bonus
+            amplified.extend(sensor_allocations[3:])
+
+            # Reduce bottom sensors to compensate (keep total = POOL_SIZE)
+            bottom_sensors = amplified[3:]
+            bottom_total = sum(a for _, a in bottom_sensors)
+            if bottom_total > 0 and top_bonus > 0:
+                reduction_ratio = max(0.0, (bottom_total - top_bonus) / bottom_total)
+                rebalanced_bottom = [
+                    (sid, max(0, round(alloc * reduction_ratio)))
+                    for sid, alloc in bottom_sensors
+                ]
+                amplified = amplified[:3] + rebalanced_bottom
+
+            # Fix rounding: adjust last sensor to hit POOL_SIZE exactly
+            current_total = sum(a for _, a in amplified)
+            if current_total != POOL_SIZE and amplified:
+                last_sid, last_alloc = amplified[-1]
+                amplified[-1] = (last_sid, last_alloc + (POOL_SIZE - current_total))
+
+            sensor_allocations = amplified
 
         # Build list of all vehicle ids with their distance to each sensor
         all_vids = list(self._vehicles.keys())
@@ -561,3 +603,58 @@ class TrafficSimulation:
             {"X": round(v.x, 6), "Y": round(v.y, 6), "TYPE": v.vehicle_type, "ID": v.id}
             for v in self._vehicles.values()
         ]
+
+    def get_corridor_vehicle_count(self, corridors):
+        """Count how many vehicles are currently near each corridor.
+
+        Returns a list of dicts with corridor_id, vehicle_count, and
+        avg_speed_pct for each corridor.  A vehicle is "on" a corridor
+        if its attraction_node matches one of the corridor's sensor nodes.
+        """
+        # Build a set of sensor nodes per corridor
+        corridor_sensor_nodes = []
+        for corridor in corridors:
+            sensor_ids = [s.get("sensor_id", s.get("id", "")) for s in corridor.get("sensors", [])]
+            nodes = set()
+            for sid in sensor_ids:
+                node = self._sensor_nodes.get(sid)
+                if node is not None:
+                    nodes.add(node)
+            corridor_sensor_nodes.append(nodes)
+
+        results = []
+        for idx, corridor in enumerate(corridors):
+            nodes = corridor_sensor_nodes[idx]
+            if not nodes:
+                results.append({
+                    "corridor_id": corridor.get("id", idx),
+                    "vehicle_count": 0,
+                    "avg_speed_pct": 0.0,
+                })
+                continue
+
+            matched_vehicles = [
+                v for v in self._vehicles.values()
+                if v.attraction_node in nodes
+            ]
+            vehicle_count = len(matched_vehicles)
+
+            # Average speed as percentage of max speed for vehicle type
+            if vehicle_count > 0:
+                speed_pcts = []
+                for v in matched_vehicles:
+                    max_speed = SPEED_MAP.get(v.vehicle_type, 10.0)
+                    # Stopped vehicles have 0% speed; moving ones approximate full speed
+                    pct = 0.0 if v._waiting_at_red else 100.0
+                    speed_pcts.append(pct)
+                avg_speed_pct = round(sum(speed_pcts) / len(speed_pcts), 1)
+            else:
+                avg_speed_pct = 0.0
+
+            results.append({
+                "corridor_id": corridor.get("id", idx),
+                "vehicle_count": vehicle_count,
+                "avg_speed_pct": avg_speed_pct,
+            })
+
+        return results

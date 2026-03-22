@@ -344,6 +344,8 @@ async def ws_traffic(ws: WebSocket):
             }
             if traffic_lights is not None:
                 msg["traffic_lights"] = traffic_lights
+            if green_wave_on and hasattr(sim, 'get_corridor_vehicle_count'):
+                msg["corridor_stats"] = sim.get_corridor_vehicle_count(green_corridors)
 
             await ws.send_json(msg)
 
