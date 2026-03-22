@@ -432,8 +432,8 @@ class TrafficSimulation:
 
                     cumulative_dist += seg_len
 
-                # Sync if within 300m of corridor line
-                if min_perp_dist < 300:
+                # Sync only lights directly on the corridor road (within 80m)
+                if min_perp_dist < 80:
                     self._original_offsets[nid] = tl["phase_offset"]
                     # Phase = travel time to reach this point along corridor
                     travel_time = dist_along / corridor_speed
