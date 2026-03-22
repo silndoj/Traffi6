@@ -455,6 +455,29 @@ function connectWebSocket() {
       if (data.traffic_lights) {
         updateTrafficLights(data.traffic_lights);
       }
+
+      // Stopped at red counter
+      if (data.stopped !== undefined) {
+        var stoppedEl = document.getElementById("stopped-count");
+        var pctEl = document.getElementById("stopped-pct");
+        var badgeEl = document.getElementById("gw-badge");
+        var hintEl = document.getElementById("impact-hint");
+        if (stoppedEl) {
+          animateCount(stoppedEl, data.stopped);
+          var pct = Math.round((data.stopped / 750) * 100);
+          pctEl.textContent = pct + "% of vehicles";
+        }
+        if (badgeEl) {
+          var gwOn = data.green_wave_active;
+          badgeEl.textContent = gwOn ? "ON" : "OFF";
+          badgeEl.className = "impact-badge" + (gwOn ? " active" : "");
+        }
+        if (hintEl) {
+          hintEl.textContent = data.green_wave_active
+            ? "Green Wave active — signals synchronized"
+            : "Enable Green Wave in Analysis tab to compare";
+        }
+      }
     } catch (e) {
       console.error("WebSocket message parse error:", e);
     }

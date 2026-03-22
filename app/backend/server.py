@@ -329,12 +329,18 @@ async def ws_traffic(ws: WebSocket):
             # Traffic lights only sent every 5th frame (they change slowly)
             traffic_lights = sim.get_traffic_light_states() if tick_count % 10 == 0 else None
 
+            # Count vehicles currently stopped at red lights
+            stopped_count = sum(1 for v in sim._vehicles.values() if v._waiting_at_red)
+            green_wave_on = getattr(sim, '_green_wave_active', False)
+
             msg = {
                 "positions": positions,
                 "timestamp": timestamps[ts_index],
                 "step": ts_index,
                 "total_steps": len(timestamps),
                 "anomalies": current_anomalies,
+                "stopped": stopped_count,
+                "green_wave_active": green_wave_on,
             }
             if traffic_lights is not None:
                 msg["traffic_lights"] = traffic_lights
