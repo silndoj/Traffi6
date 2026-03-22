@@ -22,4 +22,4 @@ COPY backend/sensor_positions.json backend/sensor_positions.json
 EXPOSE 8000
 
 WORKDIR /app/backend
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD uvicorn server:app --host 0.0.0.0 --port ${PORT:-8000}
