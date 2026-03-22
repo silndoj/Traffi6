@@ -27,153 +27,110 @@
   </div>
 
   <div id="sidebar">
+    <!-- Header -->
     <div class="sidebar-header">
       <div class="logo">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-bright)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/>
           <path d="M12 6v6l4 2"/>
         </svg>
         <h1>PulseTraffic</h1>
       </div>
       <p class="subtitle">Smart Signal Optimization — Karlsruhe</p>
-    </div>
-
-    <div class="tab-bar">
-      <button class="tab-btn active" data-tab="live">Live</button>
-      <button class="tab-btn" data-tab="analyse">Analysis</button>
-      <button class="tab-btn" data-tab="mobil">Mobile</button>
-    </div>
-
-    <div class="tab-panel active" id="tab-live">
-
-    <div class="timestamp-card">
-      <span class="label">Current Time</span>
-      <span id="current-timestamp" class="timestamp-value">--</span>
-    </div>
-
-    <div class="stats-section">
-      <h2 class="section-title">Vehicles</h2>
-      <div class="stat-grid">
-        <div class="stat-card" data-type="car">
-          <img src="assets/car.png" alt="Car" class="stat-icon">
-          <div class="stat-info">
-            <span class="stat-count" id="count-car">0</span>
-            <span class="stat-label">Cars</span>
-          </div>
-        </div>
-        <div class="stat-card" data-type="truck">
-          <img src="assets/truck.png" alt="Truck" class="stat-icon">
-          <div class="stat-info">
-            <span class="stat-count" id="count-truck">0</span>
-            <span class="stat-label">Trucks</span>
-          </div>
-        </div>
-        <div class="stat-card" data-type="motor_bike">
-          <img src="assets/motor_bike.png" alt="Motorcycle" class="stat-icon">
-          <div class="stat-info">
-            <span class="stat-count" id="count-motor_bike">0</span>
-            <span class="stat-label">Motorcycles</span>
-          </div>
-        </div>
-        <div class="stat-card" data-type="bicycle">
-          <img src="assets/bicycle.png" alt="Bicycle" class="stat-icon">
-          <div class="stat-info">
-            <span class="stat-count" id="count-bicycle">0</span>
-            <span class="stat-label">Bicycles</span>
-          </div>
-        </div>
-        <div class="stat-card" data-type="foot">
-          <img src="assets/foot.png" alt="Pedestrian" class="stat-icon">
-          <div class="stat-info">
-            <span class="stat-count" id="count-foot">0</span>
-            <span class="stat-label">Pedestrians</span>
-          </div>
+      <div class="header-meta">
+        <span id="current-timestamp" class="timestamp-value">--</span>
+        <div class="speed-group">
+          <button class="speed-btn" data-speed="1">1x</button>
+          <button class="speed-btn" data-speed="2">2x</button>
+          <button class="speed-btn active" data-speed="5">5x</button>
+          <button class="speed-btn" data-speed="10">10x</button>
+          <button class="speed-btn" data-speed="50">50x</button>
         </div>
       </div>
     </div>
 
-    <div class="totals-section">
-      <div class="total-card">
-        <span class="total-label">Total</span>
-        <span class="total-value" id="total-vehicles">0</span>
-      </div>
-      <div class="total-card">
-        <span class="total-label">Sensors</span>
-        <span class="total-value" id="active-sensors">0</span>
+    <!-- Section 1: THE PROBLEM -->
+    <div class="narrative-section">
+      <div class="section-label problem-label">THE PROBLEM</div>
+      <p class="narrative-text"><span class="highlight-red">86%</span> of Karlsruhe's intersections have traffic too unpredictable for fixed signal timing.</p>
+      <div class="data-proof">
+        <div class="proof-stat"><span class="proof-value" id="total-readings">304,018</span><span class="proof-label">sensor readings</span></div>
+        <div class="proof-stat"><span class="proof-value">50</span><span class="proof-label">sensors</span></div>
+        <div class="proof-stat"><span class="proof-value">6</span><span class="proof-label">days of data</span></div>
       </div>
     </div>
 
-    <div class="signal-impact-card" id="signal-impact">
-      <div class="impact-header">
-        <span class="impact-label">STOPPED AT RED</span>
-        <span class="impact-badge" id="gw-badge">OFF</span>
+    <!-- Stopped at Red — THE HERO METRIC -->
+    <div class="stopped-card" id="stopped-card">
+      <div class="stopped-header">
+        <span class="stopped-dot red"></span>
+        <span class="stopped-label">STOPPED AT RED</span>
       </div>
-      <div class="impact-row">
-        <span class="impact-value" id="stopped-count">0</span>
-        <span class="impact-detail" id="stopped-pct">0% of vehicles</span>
+      <div class="stopped-value-row">
+        <span class="stopped-value" id="stopped-count">0</span>
+        <span class="stopped-pct" id="stopped-pct">0%</span>
       </div>
-      <div class="impact-hint" id="impact-hint">Enable Green Wave to compare</div>
+      <span class="stopped-detail">vehicles waiting at unoptimized signals</span>
     </div>
 
-    <div class="connection-status">
-      <span class="status-dot" id="ws-status-dot"></span>
-      <span id="ws-status-text">Connecting...</span>
+    <!-- THE HERO BUTTON -->
+    <button class="hero-btn" id="btn-green-wave">
+      <span class="hero-btn-icon">&#9654;</span>
+      <div class="hero-btn-text">
+        <span class="hero-btn-title">ENABLE GREEN WAVE</span>
+        <span class="hero-btn-sub">Synchronize signals along <span id="corridor-count">8</span> corridors</span>
+      </div>
+    </button>
+
+    <!-- IMPACT SECTION — hidden until Green Wave is enabled -->
+    <div class="impact-section" id="impact-section" style="display:none;">
+      <div class="section-label solution-label">THE IMPACT</div>
+      <div class="stopped-card active">
+        <div class="stopped-header">
+          <span class="stopped-dot green"></span>
+          <span class="stopped-label">STOPPED AT RED</span>
+        </div>
+        <div class="stopped-value-row">
+          <span class="stopped-value" id="stopped-count-after">0</span>
+          <span class="stopped-pct" id="stopped-pct-after">0%</span>
+        </div>
+        <div class="improvement-badge" id="improvement-badge">
+          <span class="improvement-arrow">&#9660;</span>
+          <span id="improvement-pct">0%</span> fewer vehicles stopped
+        </div>
+      </div>
+      <div class="impact-stats">
+        <div class="impact-stat"><span class="impact-value">977</span><span class="impact-label">vehicle-hours saved daily</span></div>
+        <div class="impact-stat"><span class="impact-value" id="corridors-synced">8</span><span class="impact-label">corridors synchronized</span></div>
+      </div>
     </div>
 
-    </div><!-- /tab-live -->
+    <!-- Peak Hours — secondary info -->
+    <div class="secondary-section" id="peak-hours">
+      <div class="section-label">PEAK HOURS</div>
+    </div>
 
-    <div class="tab-panel" id="tab-analyse">
-      <div class="intelligence-section">
-        <div class="section-label">TRAFFIC INTELLIGENCE</div>
+    <!-- Alerts — dynamic -->
+    <div class="secondary-section">
+      <div class="section-label">ALERTS</div>
+      <div id="alert-list"></div>
+    </div>
 
-        <button id="btn-heatmap" class="toggle-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-            <circle cx="12" cy="12" r="4"/>
-          </svg>
-          Heatmap
-        </button>
-
-        <div class="toggle-group">
-          <button id="btn-analysis" class="toggle-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-            Analysis
-          </button>
-          <button id="btn-corridors" class="toggle-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            Green Wave
-          </button>
-        </div>
-
-        <div id="city-summary" class="summary-card">
-          <div class="section-label">CITY INTELLIGENCE</div>
-          <div id="summary-content">Loading analysis...</div>
-        </div>
-
-        <div id="signal-recommendations" class="recs-section" style="display:none;">
-          <div class="section-label">RECOMMENDATIONS</div>
-          <div id="recs-list"></div>
-          <div class="model-disclaimer">Based on assumed 90s/50% fixed-cycle baseline</div>
-        </div>
-
-        <div id="peak-hours" class="peak-section">
-          <div class="section-label">PEAK HOURS</div>
-        </div>
-
-        <div id="alerts" class="alerts-section">
-          <div class="section-label">ALERTS</div>
-          <div id="alert-list"></div>
-        </div>
+    <!-- Footer: secondary actions -->
+    <div class="sidebar-footer">
+      <button class="footer-btn" id="btn-heatmap" title="Toggle heatmap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+        Heatmap
+      </button>
+      <a class="footer-btn" href="/mobile.html" target="_blank" title="Mobile card">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+        Mobile
+      </a>
+      <div class="connection-status">
+        <span class="status-dot" id="ws-status-dot"></span>
+        <span id="ws-status-text">Connecting...</span>
       </div>
-    </div><!-- /tab-analyse -->
-
-    <div class="tab-panel" id="tab-mobil">
-      <div class="qr-section">
-        <div class="section-label">MOBILE ACCESS</div>
-        <div id="qr-code"></div>
-        <div class="qr-label">Scan for live traffic status</div>
-      </div>
-    </div><!-- /tab-mobil -->
+    </div>
   </div>
 
   <div id="map"></div>
@@ -188,13 +145,6 @@
           <polygon points="5,3 19,12 5,21"/>
         </svg>
       </button>
-      <div class="speed-group">
-        <button class="speed-btn" data-speed="1">1x</button>
-        <button class="speed-btn" data-speed="2">2x</button>
-        <button class="speed-btn active" data-speed="5">5x</button>
-        <button class="speed-btn" data-speed="10">10x</button>
-        <button class="speed-btn" data-speed="50">50x</button>
-      </div>
     </div>
     <div class="controls-center">
       <span id="time-start" class="time-label">--</span>
@@ -213,7 +163,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

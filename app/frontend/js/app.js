@@ -3,23 +3,19 @@
 const state = {
   ws: null,
   map: null,
-  markers: new Map(), // ID -> L.Marker
-  sensorMarkers: [],
+  markers: new Map(),
   isPaused: false,
   speed: 5,
   timeline: { totalSteps: 0, currentStep: 0, startTime: "", endTime: "" },
   reconnectDelay: 1000,
-  counts: { car: 0, truck: 0, motor_bike: 0, bicycle: 0, foot: 0 },
   heatmapLayer: null,
   heatmapVisible: false,
-  analysisLayer: null,
-  analysisVisible: false,
   corridorLayer: null,
-  corridorsVisible: false,
-  signalData: null,
   corridorData: null,
   trafficLightMarkers: new Map(),
   trafficLightsVisible: true,
+  greenWaveActive: false,
+  baselineStopped: 0,
 };
 
 const VEHICLE_TYPES = ["car", "truck", "motor_bike", "bicycle", "foot"];
@@ -33,10 +29,10 @@ const ICON_SIZES = {
 };
 
 const ICON_CACHE = {};
-VEHICLE_TYPES.forEach((type) => {
-  const size = ICON_SIZES[type] || [26, 26];
+VEHICLE_TYPES.forEach(function (type) {
+  var size = ICON_SIZES[type] || [26, 26];
   ICON_CACHE[type] = L.icon({
-    iconUrl: `assets/${type}.png`,
+    iconUrl: "assets/" + type + ".png",
     iconSize: size,
     iconAnchor: [size[0] / 2, size[1] / 2],
   });
@@ -46,8 +42,6 @@ VEHICLE_TYPES.forEach((type) => {
 
 const dom = {
   timestamp: document.getElementById("current-timestamp"),
-  totalVehicles: document.getElementById("total-vehicles"),
-  activeSensors: document.getElementById("active-sensors"),
   wsStatusDot: document.getElementById("ws-status-dot"),
   wsStatusText: document.getElementById("ws-status-text"),
   btnPause: document.getElementById("btn-pause"),
@@ -69,50 +63,30 @@ function formatNumber(n) {
 
 function formatTimestamp(ts) {
   if (!ts) return "--";
-  const d = new Date(ts);
+  var d = new Date(ts);
   if (isNaN(d.getTime())) return ts;
-  const day = d.getDate();
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
+  var day = d.getDate();
+  var months = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
   ];
-  const month = months[d.getMonth()];
-  const year = d.getFullYear();
-  const hours = String(d.getHours()).padStart(2, "0");
-  const mins = String(d.getMinutes()).padStart(2, "0");
-  return `${day} ${month} ${year}, ${hours}:${mins}`;
+  var month = months[d.getMonth()];
+  var year = d.getFullYear();
+  var hours = String(d.getHours()).padStart(2, "0");
+  var mins = String(d.getMinutes()).padStart(2, "0");
+  return day + " " + month + " " + year + ", " + hours + ":" + mins;
 }
 
 function formatTimeShort(ts) {
   if (!ts) return "--";
-  const d = new Date(ts);
+  var d = new Date(ts);
   if (isNaN(d.getTime())) return ts;
-  const day = d.getDate();
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
+  var day = d.getDate();
+  var months = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
   ];
-  return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  return day + " " + months[d.getMonth()] + " " + d.getFullYear();
 }
 
 // ── Map Init ────────────────────────────────────────────────────────────────
@@ -151,7 +125,7 @@ function initHeatmap() {
     },
   });
 
-  document.getElementById("btn-heatmap").addEventListener("click", () => {
+  document.getElementById("btn-heatmap").addEventListener("click", function () {
     state.heatmapVisible = !state.heatmapVisible;
     document.getElementById("btn-heatmap").classList.toggle("active");
     if (state.heatmapVisible) {
@@ -165,18 +139,18 @@ function initHeatmap() {
 // ── Alerts ──────────────────────────────────────────────────────────────────
 
 function renderAlerts(anomalies) {
-  const container = document.getElementById("alert-list");
+  var container = document.getElementById("alert-list");
   if (!anomalies.length) {
     container.innerHTML = '<div class="no-alerts">No alerts</div>';
     return;
   }
   container.innerHTML = anomalies
     .slice(0, 3)
-    .map((a) => {
-      const severityClass = a.severity > 3 ? "danger" : "warning";
-      const typeLabel =
+    .map(function (a) {
+      var severityClass = a.severity > 3 ? "danger" : "warning";
+      var typeLabel =
         a.type === "high_traffic" ? "High Traffic Volume" : a.type;
-      const sensorLabel = "Sensor " + a.sensor_id.slice(0, 8) + "...";
+      var sensorLabel = "Sensor " + a.sensor_id.slice(0, 8) + "...";
       return (
         '<div class="alert-card ' +
         severityClass +
@@ -202,17 +176,17 @@ function renderAlerts(anomalies) {
 
 async function fetchIntelligence() {
   try {
-    const res = await fetch("/api/intelligence");
+    var res = await fetch("/api/intelligence");
     if (!res.ok) return;
-    const data = await res.json();
-    const container = document.getElementById("peak-hours");
+    var data = await res.json();
+    var container = document.getElementById("peak-hours");
     if (data.peak_hours) {
       container.innerHTML =
         '<div class="section-label">PEAK HOURS</div>' +
         data.peak_hours
           .slice(0, 3)
-          .map(
-            (p) =>
+          .map(function (p) {
+            return (
               '<div class="peak-item">' +
               '<span class="peak-hour">' +
               p.hour +
@@ -220,32 +194,14 @@ async function fetchIntelligence() {
               '<span class="peak-count">' +
               formatNumber(Math.round(p.avg_vehicles)) +
               " veh.</span>" +
-              "</div>",
-          )
+              "</div>"
+            );
+          })
           .join("");
     }
   } catch (e) {
     // Intelligence endpoint may not be available yet
   }
-}
-
-// ── QR Code ─────────────────────────────────────────────────────────────────
-
-function generateQR() {
-  const port = window.location.port ? ":" + window.location.port : "";
-  const url =
-    window.location.protocol +
-    "//" +
-    window.location.hostname +
-    port +
-    "/mobile.html";
-  new QRCode(document.getElementById("qr-code"), {
-    text: url,
-    width: 100,
-    height: 100,
-    colorDark: "#e4e4e7",
-    colorLight: "#1a1d27",
-  });
 }
 
 // ── Traffic Lights ──────────────────────────────────────────────────────────
@@ -263,14 +219,12 @@ function updateTrafficLights(lights) {
 
     var existing = state.trafficLightMarkers.get(key);
     if (existing) {
-      // Update color
       var el = existing.getElement();
       if (el) {
         var dot = el.querySelector(".tl-dot");
         if (dot) dot.style.background = TL_COLORS[tl.state] || TL_COLORS.red;
       }
     } else {
-      // Create new traffic light marker
       var size = tl.degree >= 5 ? 6 : 4;
       var opacity = tl.state === "green" ? 0.5 : tl.state === "red" ? 0.7 : 0.9;
       var icon = L.divIcon({
@@ -304,13 +258,14 @@ function updateTrafficLights(lights) {
 // ── Marker Pool ─────────────────────────────────────────────────────────────
 
 function updateMarkers(vehicles) {
-  const activeIds = new Set();
+  var activeIds = new Set();
 
-  for (const v of vehicles) {
-    const id = v.ID;
+  for (var i = 0; i < vehicles.length; i++) {
+    var v = vehicles[i];
+    var id = v.ID;
     activeIds.add(id);
 
-    const existing = state.markers.get(id);
+    var existing = state.markers.get(id);
     if (existing) {
       existing.setLatLng([v.X, v.Y]);
       if (existing._vehicleType !== v.TYPE) {
@@ -318,7 +273,7 @@ function updateMarkers(vehicles) {
         existing._vehicleType = v.TYPE;
       }
     } else {
-      const marker = L.marker([v.X, v.Y], {
+      var marker = L.marker([v.X, v.Y], {
         icon: ICON_CACHE[v.TYPE] || ICON_CACHE.car,
         interactive: false,
       }).addTo(state.map);
@@ -328,29 +283,29 @@ function updateMarkers(vehicles) {
   }
 
   // Remove markers no longer present
-  for (const [id, marker] of state.markers) {
+  state.markers.forEach(function (marker, id) {
     if (!activeIds.has(id)) {
       state.map.removeLayer(marker);
       state.markers.delete(id);
     }
-  }
+  });
 }
 
 // ── Animated Counter ────────────────────────────────────────────────────────
 
 function animateCount(element, targetValue) {
-  const current = parseInt(element.textContent.replace(/\D/g, "")) || 0;
-  const target = targetValue;
+  var current = parseInt(element.textContent.replace(/\D/g, "")) || 0;
+  var target = targetValue;
   if (current === target) return;
 
-  const duration = 300;
-  const start = performance.now();
+  var duration = 300;
+  var start = performance.now();
 
   function step(now) {
-    const elapsed = now - start;
-    const progress = Math.min(elapsed / duration, 1);
-    const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-    const value = Math.round(current + (target - current) * eased);
+    var elapsed = now - start;
+    var progress = Math.min(elapsed / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 3);
+    var value = Math.round(current + (target - current) * eased);
     element.textContent = formatNumber(value);
     if (progress < 1) requestAnimationFrame(step);
   }
@@ -359,57 +314,40 @@ function animateCount(element, targetValue) {
 
 // ── Dashboard Updates ───────────────────────────────────────────────────────
 
-function updateCounts(vehicles) {
-  const counts = { car: 0, truck: 0, motor_bike: 0, bicycle: 0, foot: 0 };
-  for (const v of vehicles) {
-    if (counts[v.TYPE] !== undefined) {
-      counts[v.TYPE]++;
-    }
-  }
-
-  state.counts = counts;
-  let total = 0;
-  for (const type of VEHICLE_TYPES) {
-    const el = document.getElementById(`count-${type}`);
-    if (el) animateCount(el, counts[type]);
-    total += counts[type];
-  }
-  animateCount(dom.totalVehicles, total);
-}
-
 function updateTimeline(currentStep, totalSteps) {
   state.timeline.currentStep = currentStep;
   if (totalSteps) state.timeline.totalSteps = totalSteps;
 
-  const total = state.timeline.totalSteps;
+  var total = state.timeline.totalSteps;
   if (total > 0) {
-    const pct = (currentStep / total) * 100;
+    var pct = (currentStep / total) * 100;
     dom.timelineProgress.style.width = pct + "%";
     dom.timelineThumb.style.left = pct + "%";
   }
-  dom.stepCounter.textContent = `Step ${formatNumber(currentStep)} / ${formatNumber(state.timeline.totalSteps)}`;
+  dom.stepCounter.textContent =
+    "Step " + formatNumber(currentStep) + " / " + formatNumber(state.timeline.totalSteps);
 }
 
 // ── WebSocket ───────────────────────────────────────────────────────────────
 
 function connectWebSocket() {
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const wsPort = window.location.port ? ":" + window.location.port : "";
-  const wsUrl = `${protocol}//${window.location.hostname}${wsPort}/ws/traffic`;
+  var protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  var wsPort = window.location.port ? ":" + window.location.port : "";
+  var wsUrl = protocol + "//" + window.location.hostname + wsPort + "/ws/traffic";
 
   dom.wsStatusDot.classList.remove("connected");
   dom.wsStatusText.textContent = "Connecting...";
 
   state.ws = new WebSocket(wsUrl);
 
-  state.ws.onopen = () => {
+  state.ws.onopen = function () {
     dom.wsStatusDot.classList.add("connected");
     dom.wsStatusText.textContent = "Connected";
     state.reconnectDelay = 1000;
 
     // Fade out loading overlay after brief delay
-    setTimeout(() => {
-      const overlay = document.getElementById("loading-overlay");
+    setTimeout(function () {
+      var overlay = document.getElementById("loading-overlay");
       if (overlay) overlay.classList.add("hidden");
     }, 500);
 
@@ -417,17 +355,14 @@ function connectWebSocket() {
     state.ws.send(JSON.stringify({ speed: state.speed }));
   };
 
-  state.ws.onmessage = (event) => {
+  state.ws.onmessage = function (event) {
     try {
-      const data = JSON.parse(event.data);
+      var data = JSON.parse(event.data);
 
-      // Server sends: {positions: [...], timestamp, step, total_steps, tick}
       if (data.positions) {
         updateMarkers(data.positions);
-        updateCounts(data.positions);
       } else if (Array.isArray(data)) {
         updateMarkers(data);
-        updateCounts(data);
       }
 
       if (data.timestamp) {
@@ -437,45 +372,43 @@ function connectWebSocket() {
         updateTimeline(data.step, data.total_steps);
       }
 
-      // Heatmap: use vehicle positions as heat points
-      // Intensity 0.12 per vehicle — 3 overlapping = visible, 8+ = red
+      // Heatmap
       if (state.heatmapVisible && data.positions) {
-        const heatPoints = data.positions.map(function (v) {
+        var heatPoints = data.positions.map(function (v) {
           return [v.X, v.Y, 0.12];
         });
         state.heatmapLayer.setLatLngs(heatPoints);
       }
 
-      // Anomaly alerts from WebSocket
+      // Anomaly alerts
       if (data.anomalies) {
         renderAlerts(data.anomalies);
       }
 
-      // Traffic lights from WebSocket
+      // Traffic lights
       if (data.traffic_lights) {
         updateTrafficLights(data.traffic_lights);
       }
 
       // Stopped at red counter
       if (data.stopped !== undefined) {
-        var stoppedEl = document.getElementById("stopped-count");
-        var pctEl = document.getElementById("stopped-pct");
-        var badgeEl = document.getElementById("gw-badge");
-        var hintEl = document.getElementById("impact-hint");
-        if (stoppedEl) {
-          animateCount(stoppedEl, data.stopped);
+        if (!state.greenWaveActive) {
+          animateCount(document.getElementById("stopped-count"), data.stopped);
           var pct = Math.round((data.stopped / 750) * 100);
-          pctEl.textContent = pct + "% of vehicles";
-        }
-        if (badgeEl) {
-          var gwOn = data.green_wave_active;
-          badgeEl.textContent = gwOn ? "ON" : "OFF";
-          badgeEl.className = "impact-badge" + (gwOn ? " active" : "");
-        }
-        if (hintEl) {
-          hintEl.textContent = data.green_wave_active
-            ? "Green Wave active — signals synchronized"
-            : "Enable Green Wave in Analysis tab to compare";
+          document.getElementById("stopped-pct").textContent = pct + "%";
+          state.baselineStopped = data.stopped;
+        } else {
+          // Update "after" count
+          animateCount(document.getElementById("stopped-count-after"), data.stopped);
+          var pctAfter = Math.round((data.stopped / 750) * 100);
+          document.getElementById("stopped-pct-after").textContent = pctAfter + "%";
+          // Compute improvement
+          if (state.baselineStopped > 0) {
+            var improvementPct = Math.round(
+              ((state.baselineStopped - data.stopped) / state.baselineStopped) * 100
+            );
+            document.getElementById("improvement-pct").textContent = improvementPct + "%";
+          }
         }
       }
     } catch (e) {
@@ -483,16 +416,15 @@ function connectWebSocket() {
     }
   };
 
-  state.ws.onclose = () => {
+  state.ws.onclose = function () {
     dom.wsStatusDot.classList.remove("connected");
     dom.wsStatusText.textContent = "Disconnected — Reconnecting...";
 
-    // Exponential backoff reconnect
     setTimeout(connectWebSocket, state.reconnectDelay);
     state.reconnectDelay = Math.min(state.reconnectDelay * 1.5, 10000);
   };
 
-  state.ws.onerror = () => {
+  state.ws.onerror = function () {
     state.ws.close();
   };
 }
@@ -505,19 +437,14 @@ function wsSend(msg) {
 
 // ── REST Fetches ────────────────────────────────────────────────────────────
 
-async function fetchStats() {
-  // Don't fetch historical totals — WebSocket provides live pool counts
-  // Historical data (589K total) would flash before live counts (750) appear
-}
-
 async function fetchTimeline() {
   try {
-    const res = await fetch("/api/timeline");
+    var res = await fetch("/api/timeline");
     if (!res.ok) return;
-    const data = await res.json();
+    var data = await res.json();
     state.timeline.totalSteps = data.total_steps || 0;
     state.timeline.currentStep = data.current_step || 0;
-    const range = data.time_range || {};
+    var range = data.time_range || {};
     state.timeline.startTime = range.start || "";
     state.timeline.endTime = range.end || "";
 
@@ -529,312 +456,25 @@ async function fetchTimeline() {
   }
 }
 
-async function fetchSensors() {
-  try {
-    const res = await fetch("/api/sensors");
-    if (!res.ok) return;
-    const sensors = await res.json();
-
-    dom.activeSensors.textContent = formatNumber(sensors.length);
-
-    for (const sensor of sensors) {
-      const lat = sensor.lat || sensor.X;
-      const lon = sensor.lon || sensor.Y;
-      if (lat && lon) {
-        const pulseIcon = L.divIcon({
-          className: "sensor-pulse",
-          iconSize: [12, 12],
-          iconAnchor: [6, 6],
-          html: '<div class="pulse-dot"></div><div class="pulse-ring"></div>',
-        });
-        const marker = L.marker([lat, lon], {
-          icon: pulseIcon,
-          interactive: false,
-        }).addTo(state.map);
-        state.sensorMarkers.push(marker);
-      }
-    }
-  } catch (e) {
-    // Sensors endpoint may not be available yet
-  }
-}
-
-// ── Controls ────────────────────────────────────────────────────────────────
-
-function initControls() {
-  // Play/Pause
-  dom.btnPause.addEventListener("click", () => {
-    state.isPaused = !state.isPaused;
-    dom.iconPause.style.display = state.isPaused ? "none" : "block";
-    dom.iconPlay.style.display = state.isPaused ? "block" : "none";
-    wsSend({ pause: state.isPaused });
-  });
-
-  // Speed buttons
-  document.querySelectorAll(".speed-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document
-        .querySelectorAll(".speed-btn")
-        .forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      state.speed = parseInt(btn.dataset.speed, 10);
-      wsSend({ speed: state.speed });
-    });
-  });
-
-  // Timeline click-to-jump
-  dom.timelineTrack.addEventListener("click", (e) => {
-    const rect = dom.timelineTrack.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    const step = Math.round(pct * state.timeline.totalSteps);
-    wsSend({ jump_to: step });
-    updateTimeline(step, state.timeline.totalSteps);
-  });
-}
-
-// ── Signal Analysis ──────────────────────────────────────────────────────────
+// ── Signal Analysis (corridors only) ────────────────────────────────────────
 
 async function fetchSignalAnalysis() {
   try {
-    const [signalRes, corridorRes, summaryRes] = await Promise.all([
-      fetch("/api/signals"),
-      fetch("/api/corridors"),
-      fetch("/api/city-summary"),
-    ]);
-
-    state.signalData = await signalRes.json();
+    var corridorRes = await fetch("/api/corridors");
     state.corridorData = await corridorRes.json();
-    var summary = await summaryRes.json();
 
-    renderCitySummary(summary);
-  } catch (e) {
-    console.error("Signal fetch failed:", e);
-  }
-}
-
-function renderCitySummary(s) {
-  var container = document.getElementById("summary-content");
-  container.textContent = "";
-  var grid = document.createElement("div");
-  grid.className = "summary-grid";
-
-  // Problem statement
-  var problem = document.createElement("div");
-  problem.className = "summary-problem";
-  var pt = document.createElement("div");
-  pt.className = "problem-title";
-  pt.textContent = "THE PROBLEM";
-  problem.appendChild(pt);
-  var problems = [
-    [
-      s.pct_needs_adaptive + "%",
-      "of intersections too unpredictable for fixed signals",
-    ],
-    [
-      (s.peak_vs_offpeak_ratio || "2.0") + "x",
-      "more traffic at peak vs off-peak",
-    ],
-    [
-      s.coordination_pairs + "",
-      "intersection pairs need green-wave coordination",
-    ],
-  ];
-  problems.forEach(function (p) {
-    var row = document.createElement("div");
-    row.className = "problem-stat";
-    var v = document.createElement("span");
-    v.className = "problem-value";
-    v.textContent = p[0];
-    row.appendChild(v);
-    row.appendChild(document.createTextNode(" " + p[1]));
-    problem.appendChild(row);
-  });
-  container.appendChild(problem);
-
-  // Solution impact
-  var solution = document.createElement("div");
-  solution.className = "summary-solution";
-  var st = document.createElement("div");
-  st.className = "solution-title";
-  st.textContent = "ESTIMATED IMPACT";
-  solution.appendChild(st);
-  var impacts = [
-    [
-      formatNumber(s.estimated_daily_savings_hours || 977),
-      "vehicle-hours saved daily",
-    ],
-    [s.peak_hour + " peak", formatNumber(s.peak_hour_volume) + " vehicles"],
-  ];
-  impacts.forEach(function (p) {
-    var row = document.createElement("div");
-    row.className = "problem-stat";
-    var v = document.createElement("span");
-    v.className = "solution-value";
-    v.textContent = p[0];
-    row.appendChild(v);
-    row.appendChild(document.createTextNode(" " + p[1]));
-    solution.appendChild(row);
-  });
-  container.appendChild(solution);
-
-  // Key numbers grid
-  var stats = [
-    [s.total_sensors, "Sensors"],
-    [formatNumber(s.total_readings), "Readings"],
-    [s.peak_hour, "Peak Hour"],
-    [s.coordination_pairs, "Green Waves"],
-  ];
-  stats.forEach(function (pair) {
-    var stat = document.createElement("div");
-    stat.className = "summary-stat";
-    var val = document.createElement("span");
-    val.className = "summary-value";
-    val.textContent = pair[0];
-    var lbl = document.createElement("span");
-    lbl.className = "summary-label";
-    lbl.textContent = pair[1];
-    stat.appendChild(val);
-    stat.appendChild(lbl);
-    grid.appendChild(stat);
-  });
-  container.appendChild(grid);
-}
-
-function buildSparkBars(hourly) {
-  var maxH = Math.max.apply(null, hourly.concat([1]));
-  var container = document.createElement("div");
-  container.style.cssText =
-    "display:flex;align-items:flex-end;gap:1px;height:35px;margin-top:4px;";
-  hourly.forEach(function (v, i) {
-    var h = Math.max(1, (v / maxH) * 30);
-    var isRush = i >= 16 && i <= 18;
-    var bar = document.createElement("div");
-    bar.style.cssText =
-      "width:4px;height:" +
-      h +
-      "px;background:" +
-      (isRush ? "#ef4444" : "#3b82f6") +
-      ";border-radius:1px;";
-    container.appendChild(bar);
-  });
-  return container;
-}
-
-function buildPopupContent(sid, data) {
-  var cv = data.cv || 0;
-  var wrap = document.createElement("div");
-  wrap.style.cssText = "font-family:system-ui;min-width:220px;";
-
-  var title = document.createElement("div");
-  title.style.cssText = "font-weight:600;margin-bottom:4px;";
-  title.textContent = "Sensor " + sid.slice(0, 12) + "...";
-  wrap.appendChild(title);
-
-  var badge = document.createElement("span");
-  badge.style.cssText =
-    "color:white;padding:2px 6px;border-radius:4px;font-size:10px;background:" +
-    (data.needs_adaptive ? "#ef4444" : "#22c55e") +
-    ";";
-  badge.textContent = data.needs_adaptive ? "Needs Adaptive" : "Stable";
-  wrap.appendChild(badge);
-
-  var detail = document.createElement("div");
-  detail.style.cssText = "margin-top:8px;font-size:11px;color:#666;";
-  detail.textContent =
-    "Variability: " + cv.toFixed(2) + " | Stoßzeit: " + data.peak_hour + ":00";
-  wrap.appendChild(detail);
-
-  var label = document.createElement("div");
-  label.style.cssText = "margin-top:8px;font-size:10px;color:#888;";
-  label.textContent = "Hourly Profile (red = rush hour)";
-  wrap.appendChild(label);
-
-  var hourly = data.hourly_profile || [];
-  wrap.appendChild(buildSparkBars(hourly));
-
-  return wrap;
-}
-
-function toggleAnalysis() {
-  state.analysisVisible = !state.analysisVisible;
-  document.getElementById("btn-analysis").classList.toggle("active");
-
-  if (state.analysisVisible && state.signalData) {
-    if (!state.analysisLayer) {
-      state.analysisLayer = L.layerGroup();
-      for (var sid in state.signalData) {
-        if (!state.signalData.hasOwnProperty(sid)) continue;
-        var data = state.signalData[sid];
-        if (!data.lat || !data.lon) continue;
-        var cv = data.cv || 0;
-        var color = cv > 1.0 ? "#ef4444" : cv > 0.7 ? "#f59e0b" : "#22c55e";
-        var radius = Math.max(6, Math.min(20, (data.daily_avg || 1) / 5));
-
-        var circle = L.circleMarker([data.lat, data.lon], {
-          radius: radius,
-          color: color,
-          fillColor: color,
-          fillOpacity: 0.6,
-          weight: 2,
-        });
-
-        circle.bindPopup(buildPopupContent(sid, data), { maxWidth: 280 });
-        state.analysisLayer.addLayer(circle);
-      }
+    // Update corridor count badge
+    var countEl = document.getElementById("corridor-count");
+    var syncedEl = document.getElementById("corridors-synced");
+    if (countEl && state.corridorData) {
+      countEl.textContent = state.corridorData.length;
     }
-    state.analysisLayer.addTo(state.map);
-    document.getElementById("signal-recommendations").style.display = "block";
-    renderRecommendations();
-  } else {
-    if (state.analysisLayer) state.map.removeLayer(state.analysisLayer);
-    document.getElementById("signal-recommendations").style.display = "none";
+    if (syncedEl && state.corridorData) {
+      syncedEl.textContent = state.corridorData.length;
+    }
+  } catch (e) {
+    // Corridor endpoint may not be available yet
   }
-}
-
-function renderRecommendations() {
-  if (!state.signalData) return;
-  var entries = Object.entries(state.signalData)
-    .filter(function (e) {
-      return e[1].needs_adaptive;
-    })
-    .sort(function (a, b) {
-      return (b[1].cv || 0) - (a[1].cv || 0);
-    })
-    .slice(0, 5);
-
-  var container = document.getElementById("recs-list");
-  container.textContent = "";
-  entries.forEach(function (entry) {
-    var sid = entry[0];
-    var d = entry[1];
-    var improvement = Math.min(30, Math.round((d.cv || 0) * 15));
-
-    var card = document.createElement("div");
-    card.className = "rec-card";
-
-    var badgeEl = document.createElement("div");
-    badgeEl.className = "rec-badge";
-    badgeEl.textContent = "PROTOTYP";
-    card.appendChild(badgeEl);
-
-    var sensor = document.createElement("div");
-    sensor.className = "rec-sensor";
-    sensor.textContent = "Sensor " + sid.slice(0, 8) + "...";
-    card.appendChild(sensor);
-
-    var detail = document.createElement("div");
-    detail.className = "rec-detail";
-    detail.textContent =
-      "CV: " + (d.cv || 0).toFixed(2) + " | Stoßzeit: " + d.peak_hour + ":00";
-    card.appendChild(detail);
-
-    var suggestion = document.createElement("div");
-    suggestion.className = "rec-suggestion";
-    suggestion.textContent = "Estimated Improvement: ~" + improvement + "%";
-    card.appendChild(suggestion);
-
-    container.appendChild(card);
-  });
 }
 
 function buildCorridorPopup(corridor, idx) {
@@ -880,98 +520,117 @@ function buildCorridorPopup(corridor, idx) {
   return wrap;
 }
 
-function toggleCorridors() {
-  state.corridorsVisible = !state.corridorsVisible;
-  document.getElementById("btn-corridors").classList.toggle("active");
+// ── Controls ────────────────────────────────────────────────────────────────
 
-  // Send green wave command to backend — actually syncs traffic light phases
-  wsSend({ green_wave: state.corridorsVisible });
+function initControls() {
+  // Play/Pause
+  dom.btnPause.addEventListener("click", function () {
+    state.isPaused = !state.isPaused;
+    dom.iconPause.style.display = state.isPaused ? "none" : "block";
+    dom.iconPlay.style.display = state.isPaused ? "block" : "none";
+    wsSend({ pause: state.isPaused });
+  });
 
-  if (state.corridorsVisible && state.corridorData) {
-    if (!state.corridorLayer) {
-      state.corridorLayer = L.layerGroup();
-      var colors = [
-        "#3b82f6",
-        "#22c55e",
-        "#f59e0b",
-        "#a855f7",
-        "#ef4444",
-        "#06b6d4",
-        "#ec4899",
-        "#84cc16",
-      ];
+  // Speed buttons (both in sidebar header and controls bar)
+  document.querySelectorAll(".speed-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document
+        .querySelectorAll(".speed-btn")
+        .forEach(function (b) { b.classList.remove("active"); });
+      // Activate all buttons with same speed value
+      var speed = btn.dataset.speed;
+      document.querySelectorAll('.speed-btn[data-speed="' + speed + '"]')
+        .forEach(function (b) { b.classList.add("active"); });
+      state.speed = parseInt(speed, 10);
+      wsSend({ speed: state.speed });
+    });
+  });
 
-      state.corridorData.forEach(function (corridor, idx) {
-        // Use road path if available, otherwise fall back to sensor positions
-        var coords = (corridor.path || corridor.sensors).map(function (s) {
-          return [s.lat, s.lon];
-        });
-        if (coords.length < 2) return;
+  // Timeline click-to-jump
+  dom.timelineTrack.addEventListener("click", function (e) {
+    var rect = dom.timelineTrack.getBoundingClientRect();
+    var pct = (e.clientX - rect.left) / rect.width;
+    var step = Math.round(pct * state.timeline.totalSteps);
+    wsSend({ jump_to: step });
+    updateTimeline(step, state.timeline.totalSteps);
+  });
 
-        var color = colors[idx % colors.length];
-        // Glow underlay for visibility
-        var glow = L.polyline(coords, {
-          color: color,
-          weight: 10,
-          opacity: 0.15,
-          lineCap: "round",
-        });
-        state.corridorLayer.addLayer(glow);
+  // Hero button — Green Wave toggle
+  document.getElementById("btn-green-wave").addEventListener("click", function () {
+    state.greenWaveActive = !state.greenWaveActive;
+    this.classList.toggle("active");
+    wsSend({ green_wave: state.greenWaveActive });
 
-        // Main dashed line
-        var line = L.polyline(coords, {
-          color: color,
-          weight: 3,
-          opacity: 0.9,
-          dashArray: "8 6",
-          className: "corridor-line-animated",
-        });
+    // Show/hide impact section with animation
+    var impactSection = document.getElementById("impact-section");
+    impactSection.style.display = state.greenWaveActive ? "block" : "none";
 
-        line.bindPopup(buildCorridorPopup(corridor, idx), { maxWidth: 300 });
-        state.corridorLayer.addLayer(line);
-      });
+    // Store baseline stopped count for comparison
+    if (state.greenWaveActive) {
+      state.baselineStopped =
+        parseInt(document.getElementById("stopped-count").textContent.replace(/\D/g, "")) || 0;
     }
-    state.corridorLayer.addTo(state.map);
-  } else {
-    if (state.corridorLayer) state.map.removeLayer(state.corridorLayer);
-  }
+
+    // Update button text
+    this.querySelector(".hero-btn-title").textContent = state.greenWaveActive
+      ? "DISABLE GREEN WAVE"
+      : "ENABLE GREEN WAVE";
+    this.querySelector(".hero-btn-icon").textContent = state.greenWaveActive
+      ? "\u23F9"
+      : "\u25B6";
+
+    // Toggle corridor lines on map
+    if (state.greenWaveActive && state.corridorData) {
+      if (!state.corridorLayer) {
+        state.corridorLayer = L.layerGroup();
+        var colors = [
+          "#3b82f6", "#22c55e", "#f59e0b", "#a855f7",
+          "#ef4444", "#06b6d4", "#ec4899", "#84cc16",
+        ];
+
+        state.corridorData.forEach(function (corridor, idx) {
+          var coords = (corridor.path || corridor.sensors).map(function (s) {
+            return [s.lat, s.lon];
+          });
+          if (coords.length < 2) return;
+
+          var color = colors[idx % colors.length];
+          var glow = L.polyline(coords, {
+            color: color,
+            weight: 10,
+            opacity: 0.15,
+            lineCap: "round",
+          });
+          state.corridorLayer.addLayer(glow);
+
+          var line = L.polyline(coords, {
+            color: color,
+            weight: 3,
+            opacity: 0.9,
+            dashArray: "8 6",
+            className: "corridor-line-animated",
+          });
+
+          line.bindPopup(buildCorridorPopup(corridor, idx), { maxWidth: 300 });
+          state.corridorLayer.addLayer(line);
+        });
+      }
+      state.corridorLayer.addTo(state.map);
+    } else if (state.corridorLayer) {
+      state.map.removeLayer(state.corridorLayer);
+    }
+  });
 }
 
 // ── Init ────────────────────────────────────────────────────────────────────
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", function () {
   initMap();
   initHeatmap();
   initControls();
   connectWebSocket();
 
-  // Tab switching
-  document.querySelectorAll(".tab-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document
-        .querySelectorAll(".tab-btn")
-        .forEach((b) => b.classList.remove("active"));
-      document
-        .querySelectorAll(".tab-panel")
-        .forEach((p) => p.classList.remove("active"));
-      btn.classList.add("active");
-      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
-    });
-  });
-
-  // Fetch initial data from REST endpoints
-  fetchStats();
   fetchTimeline();
-  fetchSensors();
   fetchIntelligence();
-  generateQR();
-
-  // Signal intelligence
-  document
-    .getElementById("btn-analysis")
-    .addEventListener("click", toggleAnalysis);
-  document
-    .getElementById("btn-corridors")
-    .addEventListener("click", toggleCorridors);
   fetchSignalAnalysis();
 });

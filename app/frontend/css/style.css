@@ -74,13 +74,12 @@ body {
   display: flex;
   flex-direction: column;
   padding: 20px;
-  gap: 20px;
+  gap: 16px;
   overflow-y: auto;
 }
 
 .sidebar-header {
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
 }
 
 .logo {
@@ -104,270 +103,339 @@ body {
   font-weight: 400;
 }
 
-/* ── Tab Bar ───────────────────────────────── */
+/* ── Header Meta (time + speed in header) ──── */
 
-.tab-bar {
+.header-meta {
   display: flex;
-  gap: 0;
-  margin-bottom: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.header-meta .timestamp-value {
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.header-meta .speed-group {
+  display: flex;
+  gap: 4px;
+}
+
+.header-meta .speed-btn {
+  padding: 4px 8px;
+  font-size: 10px;
+}
+
+/* ── Section Labels ────────────────────────── */
+
+.section-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.problem-label {
+  color: var(--color-truck);
+}
+
+.solution-label {
+  color: var(--color-bicycle);
+}
+
+/* ── Narrative Sections ────────────────────── */
+
+.narrative-section {
+  padding: 16px 0;
   border-bottom: 1px solid var(--border);
 }
 
-.tab-btn {
-  flex: 1;
-  padding: 10px 0;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-muted);
-  font-family: "Inter", sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    color 0.2s ease,
-    border-color 0.2s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.tab-btn:hover {
+.narrative-text {
+  font-size: 14px;
+  line-height: 1.5;
   color: var(--text-secondary);
+  margin-top: 8px;
 }
 
-.tab-btn.active {
-  color: var(--accent-bright);
-  border-bottom-color: var(--accent-bright);
+.highlight-red {
+  color: var(--color-truck);
+  font-weight: 700;
+  font-size: 18px;
 }
 
-.tab-panel {
-  display: none;
+.highlight-green {
+  color: var(--color-bicycle);
+  font-weight: 700;
 }
 
-.tab-panel.active {
+/* ── Data Proof Row ────────────────────────── */
+
+.data-proof {
   display: flex;
-  flex-direction: column;
   gap: 16px;
+  margin-top: 12px;
 }
 
-/* ── Timestamp Card ─────────────────────────── */
-
-.timestamp-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  transition: border-color 0.2s ease;
+.proof-stat {
+  text-align: center;
 }
 
-.timestamp-card:hover {
-  border-color: var(--border-hover);
-}
-
-.timestamp-card .label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.timestamp-value {
-  font-size: 20px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
-}
-
-/* ── Stats Section ──────────────────────────── */
-
-.section-title {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-  font-weight: 600;
-}
-
-.stat-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 14px;
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease;
-}
-
-.stat-card:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--border-hover);
-}
-
-.stat-card[data-type="car"] {
-  border-left: 3px solid var(--color-car);
-}
-.stat-card[data-type="truck"] {
-  border-left: 3px solid var(--color-truck);
-}
-.stat-card[data-type="motor_bike"] {
-  border-left: 3px solid var(--color-motor_bike);
-}
-.stat-card[data-type="bicycle"] {
-  border-left: 3px solid var(--color-bicycle);
-}
-.stat-card[data-type="foot"] {
-  border-left: 3px solid var(--color-foot);
-}
-
-.stat-icon {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-  filter: brightness(0.9);
-}
-
-.stat-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-count {
-  font-size: 24px;
+.proof-value {
+  display: block;
+  font-size: 16px;
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-  color: var(--text-primary);
-}
-
-.stat-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-/* ── Totals ─────────────────────────────────── */
-
-.totals-section {
-  display: flex;
-  gap: 8px;
-}
-
-.total-card {
-  flex: 1;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  transition: border-color 0.2s ease;
-}
-
-.total-card:hover {
-  border-color: var(--border-hover);
-}
-
-.total-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.total-value {
-  font-size: 24px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
   color: var(--accent-bright);
+  font-variant-numeric: tabular-nums;
 }
 
-/* ── Signal Impact Card ─────────────────────── */
+.proof-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
 
-.signal-impact-card {
+/* ── Stopped Card — Hero Metric ────────────── */
+
+.stopped-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 14px 16px;
-  border-left: 3px solid var(--color-truck);
+  padding: 16px;
+  border-left: 4px solid var(--color-truck);
+  margin: 12px 0;
 }
-.impact-header {
+
+.stopped-card.active {
+  border-left-color: var(--color-bicycle);
+}
+
+.stopped-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 8px;
   margin-bottom: 8px;
 }
-.impact-label {
+
+.stopped-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.stopped-dot.red {
+  background: var(--color-truck);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+.stopped-dot.green {
+  background: var(--color-bicycle);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+}
+
+.stopped-label {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--text-secondary);
-  text-transform: uppercase;
 }
-.impact-badge {
-  font-size: 9px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: rgba(239, 68, 68, 0.15);
-  color: var(--color-truck);
-  letter-spacing: 0.05em;
-}
-.impact-badge.active {
-  background: rgba(34, 197, 94, 0.15);
-  color: var(--color-bicycle);
-}
-.impact-row {
+
+.stopped-value-row {
   display: flex;
   align-items: baseline;
   gap: 8px;
 }
-.impact-value {
-  font-size: 28px;
+
+.stopped-value {
+  font-size: 48px;
   font-weight: 700;
-  color: var(--color-truck);
-  font-variant-numeric: tabular-nums;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
 }
-.signal-impact-card:has(.impact-badge.active) .impact-value {
-  color: var(--color-bicycle);
-}
-.signal-impact-card:has(.impact-badge.active) {
-  border-left-color: var(--color-bicycle);
-}
-.impact-detail {
-  font-size: 11px;
+
+.stopped-pct {
+  font-size: 18px;
+  font-weight: 600;
   color: var(--text-secondary);
 }
-.impact-hint {
-  font-size: 10px;
+
+.stopped-detail {
+  font-size: 11px;
   color: var(--text-muted);
-  margin-top: 6px;
-  font-style: italic;
+  margin-top: 4px;
+  display: block;
 }
 
-/* ── Connection Status ──────────────────────── */
+/* ── Hero Button ───────────────────────────── */
+
+.hero-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+  border: 2px solid rgba(34, 197, 94, 0.3);
+  border-radius: 14px;
+  color: var(--color-bicycle);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: "Inter", sans-serif;
+}
+
+.hero-btn:hover {
+  border-color: rgba(34, 197, 94, 0.6);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.08) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.15);
+}
+
+.hero-btn.active {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.1) 100%);
+  border-color: var(--color-bicycle);
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
+}
+
+.hero-btn-icon {
+  font-size: 20px;
+}
+
+.hero-btn-text {
+  text-align: left;
+}
+
+.hero-btn-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.hero-btn-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* ── Impact Section — Slides In ────────────── */
+
+.impact-section {
+  animation: slideIn 0.4s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Improvement Badge ─────────────────────── */
+
+.improvement-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--color-bicycle);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.improvement-arrow {
+  font-size: 14px;
+}
+
+/* ── Impact Stats ──────────────────────────── */
+
+.impact-stats {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.impact-stat {
+  text-align: center;
+  flex: 1;
+}
+
+.impact-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-bicycle);
+}
+
+.impact-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* ── Secondary Sections ────────────────────── */
+
+.secondary-section {
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Footer ────────────────────────────────── */
+
+.sidebar-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+
+.footer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+  font-family: "Inter", sans-serif;
+}
+
+.footer-btn:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.footer-btn.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+/* ── Connection Status ─────────────────────── */
 
 .connection-status {
-  margin-top: auto;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -391,7 +459,7 @@ body {
   box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
 }
 
-/* ── Controls Bar ───────────────────────────── */
+/* ── Controls Bar ──────────────────────────── */
 
 #controls-bar {
   position: absolute;
@@ -547,110 +615,6 @@ body {
   font-weight: 400;
 }
 
-/* ── Leaflet Overrides ──────────────────────── */
-
-.leaflet-container {
-  background: var(--bg-primary) !important;
-}
-
-.leaflet-control-zoom a {
-  background: rgba(20, 25, 45, 0.8) !important;
-  color: var(--text-primary) !important;
-  border-color: var(--border) !important;
-  backdrop-filter: blur(10px);
-}
-
-.leaflet-control-zoom a:hover {
-  background: rgba(30, 35, 55, 0.9) !important;
-}
-
-.leaflet-control-attribution {
-  background: rgba(10, 15, 30, 0.7) !important;
-  color: var(--text-muted) !important;
-  font-size: 10px !important;
-  font-family: "Inter", sans-serif !important;
-}
-
-.leaflet-control-attribution a {
-  color: var(--text-secondary) !important;
-}
-
-/* ── Scrollbar ──────────────────────────────── */
-
-#sidebar::-webkit-scrollbar {
-  width: 3px;
-}
-
-#sidebar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-#sidebar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 3px;
-}
-
-#sidebar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.14);
-}
-
-/* Firefox scrollbar */
-#sidebar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
-}
-
-/* ── Intelligence Section ──────────────────── */
-
-.intelligence-section {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.section-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.toggle-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-family: "Inter", sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.toggle-btn:hover {
-  border-color: var(--border-hover);
-  color: var(--text-primary);
-  background: var(--bg-card-hover);
-}
-
-.toggle-btn.active {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
-  box-shadow: 0 0 12px rgba(74, 144, 217, 0.2);
-}
-
-.toggle-group {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 /* ── Alert Cards ───────────────────────────── */
 
 .alert-card {
@@ -738,72 +702,66 @@ body {
 .corridor-line-animated {
   animation: corridor-flow 1.5s linear infinite;
 }
+
 @keyframes corridor-flow {
   to {
     stroke-dashoffset: -28;
   }
 }
 
-/* ── QR Section ────────────────────────────── */
+/* ── Leaflet Overrides ─────────────────────── */
 
-.qr-section {
-  text-align: center;
-  padding: 12px 0;
-}
-
-.qr-label {
-  font-size: 10px;
-  color: var(--text-secondary);
-  margin-top: 10px;
-  font-weight: 400;
+.leaflet-container {
+  background: var(--bg-primary) !important;
 }
 
-#qr-code {
-  display: inline-block;
-  padding: 10px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+.leaflet-control-zoom a {
+  background: rgba(20, 25, 45, 0.8) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+  backdrop-filter: blur(10px);
 }
 
-/* ── Sensor Pulse Dots ──────────────────────── */
-
-.sensor-pulse {
-  background: transparent !important;
-  border: none !important;
-}
-.pulse-dot {
-  width: 5px;
-  height: 5px;
-  background: rgba(74, 144, 217, 0.5);
-  border-radius: 50%;
-  position: absolute;
-  top: 3.5px;
-  left: 3.5px;
-}
-.pulse-ring {
-  width: 14px;
-  height: 14px;
-  border: 1px solid rgba(74, 144, 217, 0.25);
-  border-radius: 50%;
-  position: absolute;
-  top: -1px;
-  left: -1px;
-  animation: pulse-expand 3s ease-out infinite;
-  opacity: 0;
-}
-@keyframes pulse-expand {
-  0% {
-    transform: scale(0.5);
-    opacity: 0.4;
-  }
-  100% {
-    transform: scale(2.5);
-    opacity: 0;
-  }
+.leaflet-control-zoom a:hover {
+  background: rgba(30, 35, 55, 0.9) !important;
 }
 
-/* ── Traffic Lights ─────────────────────────── */
+.leaflet-control-attribution {
+  background: rgba(10, 15, 30, 0.7) !important;
+  color: var(--text-muted) !important;
+  font-size: 10px !important;
+  font-family: "Inter", sans-serif !important;
+}
+
+.leaflet-control-attribution a {
+  color: var(--text-secondary) !important;
+}
+
+/* ── Scrollbar ─────────────────────────────── */
+
+#sidebar::-webkit-scrollbar {
+  width: 3px;
+}
+
+#sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+
+#sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+#sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+/* ── Traffic Lights ────────────────────────── */
 
 .tl-icon {
   background: transparent !important;
@@ -815,159 +773,6 @@ body {
   transition:
     background 0.3s ease,
     box-shadow 0.3s ease;
-}
-
-/* ── Signal Intelligence ───────────────────── */
-
-.summary-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  transition: border-color 0.2s ease;
-}
-
-.summary-card:hover {
-  border-color: var(--border-hover);
-}
-
-.summary-problem,
-.summary-solution {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.summary-problem:last-child,
-.summary-solution:last-child {
-  border-bottom: none;
-}
-
-.problem-title,
-.solution-title {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  margin-bottom: 10px;
-}
-
-.problem-title {
-  color: var(--color-truck);
-}
-
-.solution-title {
-  color: var(--color-bicycle);
-}
-
-.problem-stat {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
-  line-height: 1.5;
-}
-
-.problem-value {
-  font-weight: 700;
-  color: var(--color-truck);
-  font-variant-numeric: tabular-nums;
-}
-
-.solution-value {
-  font-weight: 700;
-  color: var(--color-bicycle);
-  font-variant-numeric: tabular-nums;
-}
-
-.summary-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding-top: 12px;
-}
-
-.summary-stat {
-  text-align: center;
-  padding: 8px 4px;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 8px;
-}
-
-.summary-value {
-  display: block;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--accent-bright);
-  font-variant-numeric: tabular-nums;
-}
-
-.summary-label {
-  font-size: 10px;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 500;
-}
-
-/* ── Recommendations ───────────────────────── */
-
-.recs-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.rec-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px 14px;
-  position: relative;
-  transition: border-color 0.2s ease;
-}
-
-.rec-card:hover {
-  border-color: var(--border-hover);
-}
-
-.rec-badge {
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  font-size: 8px;
-  font-weight: 700;
-  color: var(--color-motor_bike);
-  background: rgba(245, 158, 11, 0.12);
-  padding: 3px 8px;
-  border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
-  font-family: "Inter", sans-serif;
-}
-
-.rec-sensor {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.rec-detail {
-  font-size: 10px;
-  color: var(--text-secondary);
-  margin-top: 4px;
-  font-variant-numeric: tabular-nums;
-}
-
-.rec-suggestion {
-  font-size: 11px;
-  color: var(--color-bicycle);
-  margin-top: 6px;
-  font-weight: 600;
-}
-
-.model-disclaimer {
-  font-size: 9px;
-  color: var(--text-muted);
-  font-style: italic;
-  padding-top: 6px;
 }
 
 /* ── Loading Overlay ───────────────────────── */
@@ -1059,46 +864,5 @@ body {
   }
   100% {
     transform: translateX(300%);
-  }
-}
-
-/* ── Sensor Pulse ──────────────────────────── */
-
-.sensor-pulse {
-  background: transparent;
-  border: none;
-}
-
-.pulse-dot {
-  width: 8px;
-  height: 8px;
-  background: var(--accent);
-  border-radius: 50%;
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  box-shadow: 0 0 6px rgba(74, 144, 217, 0.4);
-}
-
-.pulse-ring {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--accent);
-  border-radius: 50%;
-  position: absolute;
-  top: -4px;
-  left: -4px;
-  animation: pulse-expand 2s ease-out infinite;
-  opacity: 0;
-}
-
-@keyframes pulse-expand {
-  0% {
-    transform: scale(0.5);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(2);
-    opacity: 0;
   }
 }
