@@ -353,6 +353,13 @@ async def ws_traffic(ws: WebSocket):
                 msg["traffic_lights"] = traffic_lights
             if green_wave_on and hasattr(sim, 'get_corridor_vehicle_count'):
                 msg["corridor_stats"] = sim.get_corridor_vehicle_count(green_corridors)
+            # Send hero route on first frame after enabling (tick_count == 0 means just enabled)
+            if green_wave_on and tick_count <= 1:
+                hero_route = sim.get_hero_route_coords()
+                if hero_route:
+                    msg["hero_route"] = hero_route
+            elif not green_wave_on and hasattr(sim, '_hero_car') and sim._hero_car is None:
+                msg["hero_route"] = None
 
             await ws.send_json(msg)
 

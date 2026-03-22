@@ -12,6 +12,7 @@ const state = {
   heatmapVisible: false,
   corridorLayer: null,
   corridorData: null,
+  heroRouteLayer: null,
   trafficLightMarkers: new Map(),
   trafficLightsVisible: true,
   greenWaveActive: false,
@@ -420,6 +421,34 @@ function connectWebSocket() {
       // Traffic lights
       if (data.traffic_lights) {
         updateTrafficLights(data.traffic_lights);
+      }
+
+      // Hero route — rendered as a prominent green glowing line
+      if (data.hero_route !== undefined) {
+        if (state.heroRouteLayer) {
+          state.map.removeLayer(state.heroRouteLayer);
+          state.heroRouteLayer = null;
+        }
+        if (data.hero_route && data.hero_route.length >= 2) {
+          state.heroRouteLayer = L.layerGroup();
+          // Wide glow
+          var glow = L.polyline(data.hero_route, {
+            color: "#22c55e",
+            weight: 14,
+            opacity: 0.12,
+            lineCap: "round",
+          });
+          state.heroRouteLayer.addLayer(glow);
+          // Core line
+          var core = L.polyline(data.hero_route, {
+            color: "#22c55e",
+            weight: 4,
+            opacity: 0.7,
+            lineCap: "round",
+          });
+          state.heroRouteLayer.addLayer(core);
+          state.heroRouteLayer.addTo(state.map);
+        }
       }
 
       // Stopped at red counter

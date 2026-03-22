@@ -650,31 +650,39 @@ class TrafficSimulation:
             v.move(dt)
 
     def launch_hero_car(self):
-        """Launch a special hero car that drives Spassbecken → Heidesee."""
-        from collections import deque
+        """Launch a special hero car that drives Spassbecken → Heidesee via shortest road."""
+        import heapq
 
         rn = self.road_network
-        # Spassbecken → Heidesee
         start_node = rn.nearest_node(48.985, 8.395)
         end_node = rn.nearest_node(49.020, 8.435)
 
-        # BFS to find road path
-        visited = {start_node}
-        queue = deque([(start_node, [start_node])])
-        route = None
-        while queue:
-            node, path = queue.popleft()
+        # Dijkstra — shortest by actual road distance (not hops)
+        dist_to = {start_node: 0}
+        prev = {start_node: None}
+        pq = [(0, start_node)]
+        while pq:
+            d, node = heapq.heappop(pq)
             if node == end_node:
-                route = path
                 break
-            if len(path) > 50:
+            if d > dist_to.get(node, float('inf')):
                 continue
             for neighbor in rn.neighbors_of(node):
-                if neighbor not in visited:
-                    visited.add(neighbor)
-                    queue.append((neighbor, path + [neighbor]))
+                edge_len = rn.edge_length_m(node, neighbor)
+                new_dist = d + edge_len
+                if new_dist < dist_to.get(neighbor, float('inf')):
+                    dist_to[neighbor] = new_dist
+                    prev[neighbor] = node
+                    heapq.heappush(pq, (new_dist, neighbor))
 
-        if not route:
+        route = []
+        node = end_node
+        while node is not None:
+            route.append(node)
+            node = prev.get(node)
+        route.reverse()
+
+        if len(route) < 2 or route[0] != start_node:
             print("[sim] Hero car: no route found!")
             return
 
@@ -689,6 +697,14 @@ class TrafficSimulation:
 
         print(f"[sim] Hero car launched: {len(route)} nodes, "
               f"{sum(rn.edge_length_m(route[k], route[k+1]) for k in range(len(route)-1)):.0f}m")
+
+    def get_hero_route_coords(self):
+        """Return the hero car route as lat/lon pairs for map rendering."""
+        if not hasattr(self, '_hero_car') or not self._hero_car:
+            return None
+        route = self._hero_car._hero_route
+        return [[round(self.road_network.position_of(n)[0], 6),
+                 round(self.road_network.position_of(n)[1], 6)] for n in route]
 
     def remove_hero_car(self):
         if -1 in self._vehicles:
