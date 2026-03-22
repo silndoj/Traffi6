@@ -980,6 +980,46 @@ body {
   scrollbar-color: rgba(255, 255, 255, 0.05) transparent;
 }
 
+/* ── Hero Car ──────────────────────────────── */
+
+.hero-car-icon {
+  background: transparent !important;
+  border: none !important;
+}
+.hero-car-dot {
+  width: 14px;
+  height: 14px;
+  background: #22c55e;
+  border-radius: 50%;
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  box-shadow:
+    0 0 12px #22c55e,
+    0 0 24px rgba(34, 197, 94, 0.4);
+  z-index: 1000;
+}
+.hero-car-ring {
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(34, 197, 94, 0.6);
+  border-radius: 50%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  animation: hero-pulse 1.5s ease-out infinite;
+}
+@keyframes hero-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
 /* ── Traffic Lights ────────────────────────── */
 
 .tl-icon {

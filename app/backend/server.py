@@ -291,8 +291,10 @@ async def ws_traffic(ws: WebSocket):
                 if "green_wave" in msg:
                     if msg["green_wave"]:
                         sim.enable_green_wave(green_corridors)
+                        sim.launch_hero_car()
                     else:
                         sim.disable_green_wave()
+                        sim.remove_hero_car()
             except (asyncio.TimeoutError, ValueError):
                 pass
 

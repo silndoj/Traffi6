@@ -186,6 +186,29 @@ class Vehicle:
         self._recent_nodes = []
 
     def _pick_next_target(self):
+        # Hero car: follow fixed route instead of random walk
+        if hasattr(self, '_hero_route') and self._hero_route:
+            idx = self._hero_route_idx
+            if idx < len(self._hero_route) - 1:
+                self._hero_route_idx += 1
+                self.current_node = self._hero_route[idx]
+                self.target_node = self._hero_route[idx + 1]
+                self.progress = 0.0
+                self._edge_length = self._net.edge_length_m(self.current_node, self.target_node)
+                self._recent_nodes = []
+                return
+            else:
+                # Reached end of route — restart from beginning
+                self._hero_route_idx = 0
+                self.current_node = self._hero_route[0]
+                self.target_node = self._hero_route[1] if len(self._hero_route) > 1 else self._hero_route[0]
+                lat, lon = self._net.position_of(self.current_node)
+                self.x = lat
+                self.y = lon
+                self.progress = 0.0
+                self._edge_length = self._net.edge_length_m(self.current_node, self.target_node)
+                return
+
         neighbors = self._net.neighbors_of(self.target_node)
         if not neighbors:
             self._teleport_to_central()
@@ -626,11 +649,67 @@ class TrafficSimulation:
         for v in self._vehicles.values():
             v.move(dt)
 
+    def launch_hero_car(self):
+        """Launch a special hero car that drives Spassbecken → Heidesee."""
+        from collections import deque
+
+        rn = self.road_network
+        # Spassbecken → Heidesee
+        start_node = rn.nearest_node(48.985, 8.395)
+        end_node = rn.nearest_node(49.020, 8.435)
+
+        # BFS to find road path
+        visited = {start_node}
+        queue = deque([(start_node, [start_node])])
+        route = None
+        while queue:
+            node, path = queue.popleft()
+            if node == end_node:
+                route = path
+                break
+            if len(path) > 50:
+                continue
+            for neighbor in rn.neighbors_of(node):
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, path + [neighbor]))
+
+        if not route:
+            print("[sim] Hero car: no route found!")
+            return
+
+        # Create the hero car with a fixed route
+        vid = -1  # special ID
+        v = Vehicle(vid, "car", rn, route[0], sim=self)
+        v._hero_route = route
+        v._hero_route_idx = 0
+        v.speed = 14.0  # slightly faster than normal cars
+        self._vehicles[vid] = v
+        self._hero_car = v
+
+        print(f"[sim] Hero car launched: {len(route)} nodes, "
+              f"{sum(rn.edge_length_m(route[k], route[k+1]) for k in range(len(route)-1)):.0f}m")
+
+    def remove_hero_car(self):
+        if -1 in self._vehicles:
+            del self._vehicles[-1]
+            self._hero_car = None
+            print("[sim] Hero car removed")
+
     def get_positions(self):
-        return [
+        result = [
             {"X": round(v.x, 6), "Y": round(v.y, 6), "TYPE": v.vehicle_type, "ID": v.id}
             for v in self._vehicles.values()
+            if v.id != -1  # exclude hero car from regular list
         ]
+        # Add hero car with special type
+        if hasattr(self, '_hero_car') and self._hero_car and -1 in self._vehicles:
+            h = self._hero_car
+            result.append({
+                "X": round(h.x, 6), "Y": round(h.y, 6),
+                "TYPE": "hero", "ID": -1,
+            })
+        return result
 
     def get_corridor_vehicle_count(self, corridors):
         """Count how many vehicles are currently near each corridor.

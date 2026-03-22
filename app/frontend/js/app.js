@@ -38,6 +38,14 @@ VEHICLE_TYPES.forEach(function (type) {
   });
 });
 
+// Hero car: glowing special marker
+ICON_CACHE["hero"] = L.divIcon({
+  className: "hero-car-icon",
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+  html: '<div class="hero-car-dot"></div><div class="hero-car-ring"></div>',
+});
+
 // ── DOM Refs ────────────────────────────────────────────────────────────────
 
 const dom = {
