@@ -2,7 +2,7 @@
 
 Real-time traffic simulation and signal optimization platform for Karlsruhe, Germany. Analyzes 304,018 real IoT sensor readings to prove that 86% of intersections need adaptive timing, then demonstrates Green Wave corridor optimization that reduces stopped vehicles by 17%.
 
-**[Live Demo](https://b8fe4b5c503f1bc8-194-213-108-6.serveousercontent.com)** · **[Pitch Deck](https://b8fe4b5c503f1bc8-194-213-108-6.serveousercontent.com/pitch.html)**
+**[Live Demo](https://8ef220895df8f085-153-92-90-3.serveousercontent.com)** · **[Pitch Deck](https://8ef220895df8f085-153-92-90-3.serveousercontent.com/pitch.html)**
 
 ---
 
